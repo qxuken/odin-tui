@@ -42,15 +42,12 @@ _set_utf8_terminal :: proc() {
 
 _get_size :: proc() -> Window_Size {
 	// Get a handle to the standard output.
-	stdin := win32.GetStdHandle(win32.STD_OUTPUT_HANDLE)
-	assert(stdin != win32.INVALID_HANDLE_VALUE)
+	stdout := win32.GetStdHandle(win32.STD_OUTPUT_HANDLE)
+	assert(stdout != win32.INVALID_HANDLE_VALUE)
 
 	ci: win32.CONSOLE_SCREEN_BUFFER_INFO
-	ok := win32.GetConsoleScreenBufferInfo(stdin, &ci)
+	ok := win32.GetConsoleScreenBufferInfo(stdout, &ci)
 	assert(ok == true, "GetConsoleScreenBufferInfo != ok")
 
-	return {
-		cast(int)(ci.srWindow.Right - ci.srWindow.Left) + 1,
-		cast(int)(ci.srWindow.Top - ci.srWindow.Bottom) + 1,
-	}
+	return {ci.srWindow.Right - ci.srWindow.Left + 1, ci.srWindow.Top - ci.srWindow.Bottom + 1}
 }

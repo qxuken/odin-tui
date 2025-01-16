@@ -3,8 +3,8 @@ package main
 import "core:fmt"
 
 Window_Size :: struct {
-	width:  int,
-	height: int,
+	width:  u16,
+	height: u16,
 }
 
 enable_raw_mode :: proc() {

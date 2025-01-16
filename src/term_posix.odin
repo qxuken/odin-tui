@@ -1,13 +1,22 @@
 #+build darwin, linux, freebsd, openbsd, netbsd
 package main
 
+import "core:sys/linux"
 import psx "core:sys/posix"
 
 @(private = "file")
 orig_mode: psx.termios
 
 @(private = "file")
-TIOCSWINSZ :: 21524
+winsize :: struct {
+	ws_row:    u16,
+	ws_col:    u16,
+	ws_xpixel: u16,
+	ws_ypixel: u16,
+}
+
+@(private = "file")
+TIOCGWINSZ :: 0x5413
 
 _enable_raw_mode :: proc() {
 	// Get the original terminal attributes.
@@ -33,12 +42,15 @@ _disable_raw_mode :: proc "c" () {
 _set_utf8_terminal :: proc() {}
 
 _get_size :: proc() -> Window_Size {
-	// TODO: implement for posix
 	// https://rosettacode.org/wiki/Terminal_control/Dimensions#Library:_BSD_libc
+	// fd, err := linux.open("/dev/tty", {.RDWR})
+	// assert(err == nil)
+	// defer linux.close(fd)
 
-	// https://github.com/crossterm-rs/crossterm/blob/e104a7cb400910609cdde36f322e3905c4baa805/src/terminal/sys/unix.rs#L85
-	// https://github.com/bytecodealliance/rustix/blob/472196d897b463ea40a5245b3920ca4e7c361d1b/src/backend/linux_raw/termios/syscalls.rs#L24
+	ws := new(winsize)
+	defer free(ws)
 
-	// TIOCSWINSZ
-	unimplemented()
+	ret := linux.ioctl(linux.STDIN_FILENO, TIOCGWINSZ, uintptr(ws))
+
+	return {ws.ws_col, ws.ws_row}
 }

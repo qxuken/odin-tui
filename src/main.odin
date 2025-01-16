@@ -43,7 +43,6 @@ get_input :: proc(allocator := context.allocator) -> string {
 	for {
 		// Read a single character at a time.
 		ch, sz, err := io.read_rune(in_stream)
-		fmt.eprintln(ch, sz, err)
 		switch {
 		case err != nil:
 			fmt.eprintfln("\nError: %v", err)
@@ -69,7 +68,7 @@ get_input :: proc(allocator := context.allocator) -> string {
 	}
 }
 
-draw_progress_bar :: proc(title: string, percent: int, width := 25) {
+draw_progress_bar :: proc(title: string, percent: int, width: u16 = 25) {
 	fmt.printf("%v %d%%\n", title, percent, flush = false) // Put cursor back at the start of the line
 
 	if percent == 0 {
@@ -79,7 +78,7 @@ draw_progress_bar :: proc(title: string, percent: int, width := 25) {
 	}
 
 	dynamic_width := width - 2
-	done := percent * dynamic_width / 100
+	done := cast(u16)percent * dynamic_width / 100
 	left := dynamic_width - done
 	for _ in 0 ..< done {
 		fmt.print(rune(0xEE04), flush = false)
