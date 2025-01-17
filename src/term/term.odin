@@ -1,4 +1,4 @@
-package main
+package term
 
 import "core:fmt"
 
@@ -25,6 +25,10 @@ set_utf8_terminal :: proc() {
 	_set_utf8_terminal()
 }
 
+get_size :: proc() -> Window_Size {
+	return _get_size()
+}
+
 clear_screen :: proc() {
 	fmt.print("\033[H", flush = false) // move to home (row=1, col=1)
 	fmt.print("\033[2J") // clear screen
@@ -36,8 +40,4 @@ hide_cursor :: proc() {
 
 show_cursor :: proc() {
 	fmt.print("\033[?25h")
-}
-
-get_size :: proc() -> Window_Size {
-	return _get_size()
 }

@@ -1,22 +1,10 @@
-#+build darwin, linux, freebsd, openbsd, netbsd
-package main
+#+build darwin, linux
+package term
 
-import "core:sys/linux"
 import psx "core:sys/posix"
 
 @(private = "file")
 orig_mode: psx.termios
-
-@(private = "file")
-winsize :: struct {
-	ws_row:    u16,
-	ws_col:    u16,
-	ws_xpixel: u16,
-	ws_ypixel: u16,
-}
-
-@(private = "file")
-TIOCGWINSZ :: 0x5413
 
 _enable_raw_mode :: proc() {
 	// Get the original terminal attributes.
@@ -40,17 +28,3 @@ _disable_raw_mode :: proc "c" () {
 }
 
 _set_utf8_terminal :: proc() {}
-
-_get_size :: proc() -> Window_Size {
-	// https://rosettacode.org/wiki/Terminal_control/Dimensions#Library:_BSD_libc
-	// fd, err := linux.open("/dev/tty", {.RDWR})
-	// assert(err == nil)
-	// defer linux.close(fd)
-
-	ws := new(winsize)
-	defer free(ws)
-
-	ret := linux.ioctl(linux.STDIN_FILENO, TIOCGWINSZ, uintptr(ws))
-
-	return {ws.ws_col, ws.ws_row}
-}

@@ -6,28 +6,28 @@ import "core:os"
 import "core:sys/windows"
 import "core:time"
 import "core:unicode/utf8"
+import "term"
 
 main :: proc() {
-	set_utf8_terminal()
-	enable_raw_mode()
-	defer disable_raw_mode()
+	term.set_utf8_terminal()
+	term.enable_raw_mode()
+	defer term.disable_raw_mode()
+	term.hide_cursor()
+	defer term.show_cursor()
 
-	size := get_size()
+	size := term.get_size()
 
-	clear_screen()
+	term.clear_screen()
 	fmt.print("Enter something:")
 	input := get_input()
 	defer delete(input)
 
-	hide_cursor()
-	defer show_cursor()
-
-	clear_screen()
+	term.clear_screen()
 	fmt.print("You typed", input)
 	time.sleep(1.667e+7 * 30)
 
 	for percent in 0 ..= 100 {
-		clear_screen()
+		term.clear_screen()
 		draw_progress_bar("Uploading result", percent, size.width)
 		time.sleep(1.667e+7)
 	}
@@ -37,6 +37,8 @@ main :: proc() {
 }
 
 get_input :: proc(allocator := context.allocator) -> string {
+	term.show_cursor()
+	defer term.hide_cursor()
 	buf := make([dynamic]byte, allocator)
 	in_stream := os.stream_from_handle(os.stdin)
 
@@ -69,7 +71,7 @@ get_input :: proc(allocator := context.allocator) -> string {
 }
 
 draw_progress_bar :: proc(title: string, percent: int, width: u16 = 25) {
-	fmt.printf("%v %d%%\n", title, percent, flush = false) // Put cursor back at the start of the line
+	fmt.printf("%v %d%%\n", title, percent, flush = false)
 
 	if percent == 0 {
 		fmt.print(rune(0xEE00), flush = false)
