@@ -6,6 +6,14 @@ import "core:sys/windows"
 @(private = "file")
 orig_mode: windows.DWORD
 
+@(private = "file")
+ENABLE_EXTENDED_FLAGS: windows.DWORD : 0x0080
+
+_set_utf8_terminal :: proc() {
+	windows.SetConsoleOutputCP(.UTF8)
+	windows.SetConsoleCP(.UTF8)
+}
+
 _enable_raw_mode :: proc() {
 	// Get a handle to the standard input.
 	stdin := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
@@ -16,11 +24,8 @@ _enable_raw_mode :: proc() {
 	assert(ok == true)
 
 	// Reset to the original attributes at the end of the program.
-	libc.atexit(disable_raw_mode)
+	libc.atexit(restore_terminal)
 
-	// Copy, and remove the
-	// ENABLE_ECHO_INPUT (so what is typed is not shown) and
-	// ENABLE_LINE_INPUT (so we get each input instead of an entire line at once) flags.
 	raw := orig_mode
 	raw &= ~windows.ENABLE_ECHO_INPUT
 	raw &= ~windows.ENABLE_LINE_INPUT
@@ -28,16 +33,28 @@ _enable_raw_mode :: proc() {
 	assert(ok == true)
 }
 
-_disable_raw_mode :: proc "c" () {
+_enable_mouse_capture :: proc() {
+	// Get a handle to the standard input.
+	stdin := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
+	assert(stdin != windows.INVALID_HANDLE_VALUE)
+
+	// Get the original terminal mode.
+	mode: windows.DWORD
+	ok := windows.GetConsoleMode(stdin, &mode)
+	assert(ok == true)
+
+	mode |= windows.ENABLE_MOUSE_INPUT
+	mode |= windows.ENABLE_WINDOW_INPUT
+	mode |= ENABLE_EXTENDED_FLAGS
+	ok = windows.SetConsoleMode(stdin, mode)
+	assert(ok == true)
+}
+
+_restore_terminal :: proc "c" () {
 	stdin := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
 	assert_contextless(stdin != windows.INVALID_HANDLE_VALUE)
 
 	windows.SetConsoleMode(stdin, orig_mode)
-}
-
-_set_utf8_terminal :: proc() {
-	windows.SetConsoleOutputCP(.UTF8)
-	windows.SetConsoleCP(.UTF8)
 }
 
 _get_size :: proc() -> Window_Size {
@@ -49,5 +66,8 @@ _get_size :: proc() -> Window_Size {
 	ok := windows.GetConsoleScreenBufferInfo(stdout, &ci)
 	assert(ok == true, "GetConsoleScreenBufferInfo != ok")
 
-	return {ci.srWindow.Right - ci.srWindow.Left + 1, ci.srWindow.Top - ci.srWindow.Bottom + 1}
+	return {
+		cast(u16)(ci.srWindow.Right - ci.srWindow.Left) + 1,
+		cast(u16)(ci.srWindow.Top - ci.srWindow.Bottom) + 1,
+	}
 }
