@@ -20,6 +20,18 @@ enable_raw_mode :: proc() {
 
 enable_mouse_capture :: proc() {
 	_enable_mouse_capture()
+
+	// Also enable basic mouse tracking if needed
+	fmt.print(csi + "?1000h", flush = false)
+	// Enable draging event
+	fmt.print(csi + "?1002h", flush = false)
+	// Enable all-motion tracking
+	fmt.print(csi + "?1003h", flush = false)
+	// Enable SGR extended mouse mode (for better coordinates, etc.)
+	fmt.print(csi + "?1006h", flush = false)
+	// Enable URxvt extended mouse mode >223
+	fmt.print(csi + "?1015h", flush = false)
+	fmt.print()
 }
 
 enter_alternate_mode :: proc() {

@@ -29,19 +29,7 @@ _enable_raw_mode :: proc() {
 	assert(res == .OK)
 }
 
-_enable_mouse_capture :: proc() {
-	// Also enable basic mouse tracking if needed
-	fmt.print("\x1B[?1000h", flush = false)
-	// Enable draging event
-	fmt.print("\x1B[?1002h", flush = false)
-	// Enable all-motion tracking
-	fmt.print("\x1B[?1003h", flush = false)
-	// Enable SGR extended mouse mode (for better coordinates, etc.)
-	fmt.print("\x1B[?1006h", flush = false)
-	// Enable URxvt extended mouse mode >223
-	fmt.print("\x1B[?1015h", flush = false)
-	fmt.print()
-}
+_enable_mouse_capture :: proc() {}
 
 _restore_terminal :: proc "c" () {
 	psx.tcsetattr(psx.STDIN_FILENO, .TCSANOW, &orig_mode)
