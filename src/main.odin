@@ -3,125 +3,138 @@ package main
 import "core:fmt"
 import "core:io"
 import "core:os"
+import "core:slice"
+import "core:strconv"
+import "core:strings"
 import "core:sys/windows"
 import "core:time"
 import "core:unicode/utf8"
 import "term"
+import "widgets"
 
 main :: proc() {
 	term.set_utf8_terminal()
 	term.enable_raw_mode()
+	term.enter_alternate_mode()
 	term.enable_mouse_capture()
-	defer term.restore_terminal()
-
 	term.hide_cursor()
+	defer term.restore_terminal()
+	defer term.exit_alternate_mode()
 	defer term.show_cursor()
 
-	for percent in 0 ..= 100 {
-		term.clear_screen()
-		size := term.get_size()
+	in_stream := os.stream_from_handle(os.stdin)
+	defer io.destroy(in_stream)
+	out_stream := os.stream_from_handle(os.stdout)
+	defer io.destroy(out_stream)
 
-		draw_progress_bar("Uploading result", percent, size.width)
+	buf: [128]u8
+	n: int
+	err: io.Error
+	history := make([dynamic]DebugEvent)
+	for {
+		defer free_all(context.temp_allocator)
+		size := term.get_size()
+		term.clear_screen(out_stream)
+
+		io.write_string(out_stream, "Enter something:\r\n")
+		io.write_string(out_stream, fmt.tprintln(buf[:n]))
+		for h in history[:len(history)] {
+			io.write_string(out_stream, fmt.tprintln(h))
+		}
+		io.flush(out_stream)
+
+		n, err = io.read(in_stream, buf[:])
+		if err == nil {
+			evts := process_input(buf[:n])
+			for evt in evts {
+				if v, ok := evt.event.(Key); ok && v.val == 'q' {
+					return
+				}
+				inject_at_elem(&history, 0, evt)
+			}
+			if diff := (len(history) - cast(int)size.height + 10); diff > 0 {
+				for _ in 0 ..< diff {
+					el := pop(&history)
+					delete(el.raw)
+				}
+			}
+		}
 		time.sleep(1.667e+7)
 	}
 
-	term.clear_screen()
-	fmt.print("Enter something:")
-	input := get_secure_input()
-	defer delete(input)
-
-	term.clear_screen()
-	fmt.print("You typed", input)
-	time.sleep(1.667e+7 * 30)
-
 	fmt.print("\nPress ENTER to exit...")
-	get_input()
 }
 
-get_input :: proc(allocator := context.allocator) -> string {
-	term.show_cursor()
-	defer term.hide_cursor()
-	buf := make([dynamic]byte, allocator)
-	in_stream := os.stream_from_handle(os.stdin)
+Key :: struct {
+	val: rune,
+}
 
-	for {
-		// Read a single character at a time.
-		ch, sz, err := io.read_rune(in_stream)
+MouseEventType :: enum {
+	LeftClick   = 0,
+	MiddleClick = 1,
+	RightClick  = 2,
+	LeftDrag    = 32,
+	MiddleDrag  = 33,
+	RightDrag   = 34,
+	Move        = 35,
+	ScrollUp    = 64,
+	ScrollDown  = 65,
+	ScrollRight = 66,
+	ScrollLeft  = 67,
+	Release     = 120,
+}
+
+MouseEvent :: struct {
+	m: MouseEventType,
+	x: int,
+	y: int,
+}
+
+Unknown :: struct {}
+
+Event :: union #no_nil {
+	Unknown,
+	Key,
+	MouseEvent,
+}
+
+DebugEvent :: struct {
+	raw:   string,
+	bytes: []u8,
+	event: Event,
+}
+
+process_input :: proc(buf: []u8) -> []DebugEvent {
+	res := make([dynamic]DebugEvent, allocator = context.temp_allocator)
+	s := strings.clone_from_bytes(buf[:], allocator = context.temp_allocator)
+
+	for p in strings.split_iterator(&s, "\x1B") {
+		if len(p) == 0 {
+			continue
+		}
+		sc := strings.clone(p)
+		rb := cast([]u8)sc
+
 		switch {
-		case err != nil:
-			fmt.eprintfln("\nError: %v", err)
-			os.exit(1)
-
-		case ch == '\n':
-			return string(buf[:])
-
-		case ch == '\u007f':
-			// Backspace.
-			_, bs_sz := utf8.decode_last_rune(buf[:])
-			if bs_sz > 0 {
-				resize(&buf, len(buf) - bs_sz)
-				// Replace last star with a space.
-				fmt.print("\b \b")
-			}
-		case:
-			bytes, _ := utf8.encode_rune(ch)
-			append(&buf, ..bytes[:sz])
-			fmt.print(ch)
+		case len(p) > 6 && p[0] == '[' && p[1] == '<':
+			evt := parse_sgr_mouse(p[2:]) or_continue
+			append(&res, DebugEvent{sc, rb, evt})
+		case len(p) > 0:
+			append(&res, DebugEvent{sc, rb, Key{rune(p[0])}})
+		case true:
+			append(&res, DebugEvent{sc, rb, Unknown{}})
 		}
 	}
+	return res[:]
 }
-
-get_secure_input :: proc(allocator := context.allocator) -> string {
-	buf := make([dynamic]byte, allocator)
-	in_stream := os.stream_from_handle(os.stdin)
-
-	fmt.print(" ")
-	for {
-		// Read a single character at a time.
-		ch, sz, err := io.read_rune(in_stream)
-		switch {
-		case err != nil:
-			fmt.eprintfln("\nError: %v", err)
-			os.exit(1)
-
-		case ch == '\n':
-			return string(buf[:])
-		case ch == '\u007f':
-			// Backspace.
-			_, bs_sz := utf8.decode_last_rune(buf[:])
-			if bs_sz > 0 {
-				resize(&buf, len(buf) - bs_sz)
-				// Replace last star with a space.
-				fmt.print("\b \b")
-			}
-		case:
-			bytes, _ := utf8.encode_rune(ch)
-			append(&buf, ..bytes[:sz])
-		}
+parse_sgr_mouse :: proc(s: string) -> (evt: MouseEvent, ok: bool) {
+	parts := strings.split(s, ";", allocator = context.temp_allocator)
+	if len(parts) != 3 {
+		return
 	}
-}
-
-draw_progress_bar :: proc(title: string, percent: int, width: u16 = 25) {
-	fmt.printf("%v %d%%\r\n", title, percent, flush = false)
-
-	if percent == 0 {
-		fmt.print(rune(0xEE00), flush = false)
-	} else {
-		fmt.print(rune(0xEE03), flush = false)
+	mouse_event_type := cast(MouseEventType)strconv.atoi(parts[0])
+	if parts[2][len(parts[2]) - 1] == 'm' {
+		mouse_event_type = .Release
 	}
-
-	dynamic_width := width - 2
-	done := cast(u16)percent * dynamic_width / 100
-	left := dynamic_width - done
-	for _ in 0 ..< done {
-		fmt.print(rune(0xEE04), flush = false)
-	}
-	for _ in 0 ..< left {
-		fmt.print(rune(0xEE01), flush = false)
-	}
-	if percent == 100 {
-		fmt.print(rune(0xEE05))
-	} else {
-		fmt.print(rune(0xEE02))
-	}
+	return MouseEvent{mouse_event_type, strconv.atoi(parts[1]), strconv.atoi(parts[2])}, true
 }

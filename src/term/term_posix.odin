@@ -11,20 +11,17 @@ orig_mode: psx.termios
 _set_utf8_terminal :: proc() {}
 
 _enable_raw_mode :: proc() {
-	// Get the original terminal attributes.
 	res := psx.tcgetattr(psx.STDIN_FILENO, &orig_mode)
 	assert(res == .OK)
 
-	// Reset to the original attributes at the end of the program.
 	psx.atexit(restore_terminal)
+	psx.signal(.SIGINT, proc "c" (_: psx.Signal) {_restore_terminal()})
 
-	// Copy, and remove the
-	// ECHO (so what is typed is not shown) and
-	// ICANON (so we get each input instead of an entire line at once) flags.
 	raw := orig_mode
-	raw.c_iflag -= {.BRKINT, .ICRNL, .INPCK, .ISTRIP, .IXON}
-	raw.c_oflag -= {.OPOST}
-	raw.c_lflag -= {.ECHO, .ICANON, .ISIG, .IEXTEN}
+	raw.c_iflag -= {.IGNBRK, .BRKINT, .PARMRK, .ISTRIP, .INLCR, .IGNCR, .ICRNL, .IXON}
+	raw.c_oflag += {.OPOST, .ONLCR}
+	raw.c_lflag -= {.ECHO, .ECHONL, .ICANON, .ISIG, .IEXTEN}
+	raw.c_cflag -= {.PARENB}
 	raw.c_cflag += {.CS8}
 	raw.c_cc[.VMIN] = 0
 	raw.c_cc[.VTIME] = 1
@@ -48,11 +45,4 @@ _enable_mouse_capture :: proc() {
 
 _restore_terminal :: proc "c" () {
 	psx.tcsetattr(psx.STDIN_FILENO, .TCSANOW, &orig_mode)
-
-	/* Re-enable normal mouse reporting off (if we want a clean state) */
-	libc.printf("\x1B[?1003l") // disable all-motion tracking
-	libc.printf("\x1B[?1006l") // disable SGR (extended) mouse mode
-	libc.printf("\x1B[?1015l") // disable urxvt mouse mode
-	libc.printf("\x1B[?1000l") // disable basic mouse tracking
-	libc.fflush(libc.stdout)
 }
