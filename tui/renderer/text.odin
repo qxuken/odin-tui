@@ -28,22 +28,8 @@ render_text :: proc(renderer: ^Renderer, insert: InsertAt, text: string, fg: Col
     wrapped := wrap_text(text, {insert.width, insert.height}, arena_allocator)
     for row in insert.y ..< insert.y + insert.height {
         for col in insert.x ..< insert.x + insert.width {
-            i := utils.tranform_2d_index(renderer.bounds.x, row, col)
-            if 0 > i || i >= len(renderer.state) {
-                continue
-            }
             wi := utils.tranform_2d_index(insert.width, row - insert.y, col - insert.x)
-            cell := &renderer.state[i]
-            if fg != .DoNotChange {
-                cell.fg = fg
-            }
-            if bg != .DoNotChange {
-                cell.bg = bg
-            }
-            if style != .DoNotChange {
-                cell.style = style
-            }
-            cell.value = wrapped[wi]
+            modify_cell(renderer, row, col, wrapped[wi], fg, bg, style)
         }
     }
 }

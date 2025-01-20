@@ -33,24 +33,27 @@ measureText :: proc "c" (text: clay.StringSlice, config: ^clay.TextElementConfig
 clayTuiRender :: proc(r: ^renderer.Renderer, renderCommands: ^clay.ClayArray(clay.RenderCommand)) {
     for i in 0 ..< int(renderCommands.length) {
         renderCommand := clay.RenderCommandArray_Get(renderCommands, cast(i32)i)
-        boundingBox := renderCommand.boundingBox
+        boundingBox := renderer.InsertAt {
+            cast(int)math.round(renderCommand.boundingBox.x),
+            cast(int)math.round(renderCommand.boundingBox.y),
+            cast(int)math.round(renderCommand.boundingBox.width),
+            cast(int)math.round(renderCommand.boundingBox.height),
+        }
         switch (renderCommand.commandType) {
         case clay.RenderCommandType.Text:
             text := string(renderCommand.text.chars[:renderCommand.text.length])
-            renderer.render_text(
-                r,
-                {cast(int)boundingBox.x, cast(int)boundingBox.y, cast(int)boundingBox.width, cast(int)boundingBox.height},
-                text,
-                fg = clayColorToTuiColor(renderCommand.config.textElementConfig.textColor),
-            )
+            renderer.render_text(r, boundingBox, text, fg = clayColorToTuiColor(renderCommand.config.textElementConfig.textColor))
         case clay.RenderCommandType.Rectangle:
             config: ^clay.RectangleElementConfig = renderCommand.config.rectangleElementConfig
-            renderer.render_box(
-                r,
-                {cast(int)boundingBox.x, cast(int)boundingBox.y, cast(int)boundingBox.width, cast(int)boundingBox.height},
-                bg = clayColorToTuiColor(config.color),
-            )
+            renderer.render_box(r, boundingBox, bg = clayColorToTuiColor(config.color))
         case clay.RenderCommandType.Border:
+            config := renderCommand.config.borderElementConfig
+            renderer.render_border(
+                r,
+                boundingBox,
+                {cast(int)config.top.width, cast(int)config.right.width, cast(int)config.bottom.width, cast(int)config.left.width},
+                bg = clayColorToTuiColor(config.left.color),
+            )
         case clay.RenderCommandType.ScissorStart:
         case clay.RenderCommandType.ScissorEnd:
         case clay.RenderCommandType.Image:
