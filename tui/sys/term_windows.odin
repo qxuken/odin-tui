@@ -76,6 +76,5 @@ _get_size :: proc() -> Window_Size {
 	ok := windows.GetConsoleScreenBufferInfo(stdout, &ci)
 	assert(ok == true, "GetConsoleScreenBufferInfo != ok")
 
-	fmt.println(ci)
-	return {cast(u16)(ci.dwSize.X), cast(u16)(ci.dwSize.Y)}
+	return {cast(int)(ci.dwSize.X), cast(int)(ci.dwSize.Y)}
 }

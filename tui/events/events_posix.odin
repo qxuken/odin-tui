@@ -33,7 +33,7 @@ _poll_event :: proc(allocator := context.temp_allocator) -> ([]DebugEvent, bool)
 }
 
 
-process_input :: proc(buf: []u8, allocator := context.temp_allocator) -> []DebugEvent {
+process_input :: proc(buf: []u8, allocator := context.temp_allocator) -> []Event {
 	res := make([dynamic]DebugEvent, allocator = allocator)
 	s := strings.clone_from_bytes(buf[:], allocator = allocator)
 
@@ -41,23 +41,28 @@ process_input :: proc(buf: []u8, allocator := context.temp_allocator) -> []Debug
 		if len(p) == 0 {
 			continue
 		}
-		sc := strings.clone(p)
 
 		switch {
 		case len(p) > 6 && p[0] == '[' && p[1] == '<':
-			evt := parse_sgr_mouse(p[2:]) or_continue
-			append(&res, DebugEvent{sc, evt})
+			evt := parse_sgr_mouse(p[2:], allocator) or_continue
+			append(&res, evt)
 		case len(p) > 0:
-			append(&res, DebugEvent{sc, Key{utf8.rune_at(p, 0)}})
+			append(&res, Key{utf8.rune_at(p, 0)})
 		case true:
-			append(&res, DebugEvent{sc, Unknown{}})
+			append(&res, Unknown{})
 		}
 	}
 	return res[:]
 }
 
-parse_sgr_mouse :: proc(s: string) -> (evt: MouseEvent, ok: bool) {
-	parts := strings.split(s, ";", allocator = context.temp_allocator)
+parse_sgr_mouse :: proc(
+	s: string,
+	allocator := context.temp_allocator,
+) -> (
+	evt: MouseEvent,
+	ok: bool,
+) {
+	parts := strings.split(s, ";", allocator = allocator)
 	if len(parts) != 3 {
 		return
 	}

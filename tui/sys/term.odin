@@ -4,8 +4,8 @@ import "core:fmt"
 import "core:io"
 
 Window_Size :: struct {
-	width:  u16,
-	height: u16,
+	width:  int,
+	height: int,
 }
 
 csi :: "\x1B["
@@ -59,6 +59,6 @@ get_size :: proc() -> Window_Size {
 }
 
 clear_screen :: proc(s: io.Stream) {
-	io.write_string(s, csi + "H") // move to home (row=1, col=1)
 	io.write_string(s, csi + "2J") // clear screen
+	io.write_string(s, csi + "H") // move to home (row=1, col=1)
 }

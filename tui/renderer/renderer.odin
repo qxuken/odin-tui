@@ -5,15 +5,20 @@ import "core:mem/virtual"
 
 Coord :: [2]int
 Bounds :: [2]int
+InsertAt :: struct {
+	x, y:          int,
+	width, height: int,
+}
 
 Cell :: struct {
 	fg:    Color,
 	bg:    Color,
 	style: Style,
-	// NOTE: Add graphemes
+	// TODO: Add graphemes
 	value: rune,
 }
 
+// TODO: Check if there more efficient buffer on windows
 Renderer :: struct {
 	state:  [dynamic]Cell,
 	bounds: Bounds,

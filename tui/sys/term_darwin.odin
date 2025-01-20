@@ -44,5 +44,5 @@ _get_size :: proc() -> Window_Size {
 	ret := syscall_ioctl(fd, TIOCGWINSZ, uintptr(ws))
 	assert(ret == 0, "syscall_ioctl return code non zero")
 
-	return {ws.ws_col, ws.ws_row}
+	return {cast(int)ws.ws_col, cast(int)ws.ws_row}
 }

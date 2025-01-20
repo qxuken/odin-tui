@@ -11,10 +11,12 @@ import "core:sys/windows"
 import "core:time"
 import "core:unicode/utf8"
 
+// TODO: Add states and unify windows and posix
 Key :: struct {
 	val: rune,
 }
 
+// TODO: Simplify types to clicked or not
 MouseEventType :: enum {
 	LeftClick   = 0,
 	MiddleClick = 1,
@@ -44,11 +46,6 @@ Event :: union #no_nil {
 	MouseEvent,
 }
 
-DebugEvent :: struct {
-	raw:   string,
-	event: Event,
-}
-
 init_event_poller :: proc() {
 	_init_event_poller()
 }
@@ -57,6 +54,6 @@ destroy_event_poller :: proc() {
 	_destroy_event_poller()
 }
 
-poll_event :: proc(allocator := context.temp_allocator) -> ([]DebugEvent, bool) {
+poll_event :: proc(allocator := context.temp_allocator) -> ([]Event, bool) {
 	return _poll_event(allocator)
 }

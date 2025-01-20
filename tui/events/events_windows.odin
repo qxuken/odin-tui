@@ -19,10 +19,15 @@ _init_event_poller :: proc() {
 	in_buf = new([128]windows.INPUT_RECORD)[:]
 }
 
-_destroy_event_poller :: proc() {}
+_destroy_event_poller :: proc() {
+	delete(in_buf)
+}
 
-_poll_event :: proc(allocator := context.temp_allocator) -> ([]DebugEvent, bool) {
+_poll_event :: proc(allocator := context.temp_allocator) -> ([]Event, bool) {
 	n: windows.DWORD
+	if windows.GetNumberOfConsoleInputEvents(in_handle, &n) && n == 0 {
+		return nil, false
+	}
 	if ok := windows.ReadConsoleInputW(in_handle, &in_buf[0], 128, &n); !ok {
 		return nil, false
 	}
@@ -33,16 +38,15 @@ _poll_event :: proc(allocator := context.temp_allocator) -> ([]DebugEvent, bool)
 process_input :: proc(
 	buf: []windows.INPUT_RECORD,
 	allocator := context.temp_allocator,
-) -> []DebugEvent {
-	res := make([dynamic]DebugEvent, allocator = allocator)
+) -> []Event {
+	res := make([dynamic]Event, allocator = allocator)
 
 	for evt in buf {
-		sc := fmt.aprint(evt, allocator = context.allocator)
 		switch evt.EventType {
 		case .KEY_EVENT:
 			{
 				evt := evt.Event.KeyEvent
-				append(&res, DebugEvent{sc, Key{rune(evt.wVirtualKeyCode)}})
+				append(&res, Key{rune(evt.wVirtualKeyCode)})
 			}
 		case .MOUSE_EVENT:
 			evt := evt.Event.MouseEvent
@@ -64,11 +68,11 @@ process_input :: proc(
 				state = .ScrollDown
 
 			}
-			append(&res, DebugEvent{sc, MouseEvent{state, cast(int)coord.X, cast(int)coord.Y}})
+			append(&res, MouseEvent{state, cast(int)coord.X, cast(int)coord.Y})
 		case .FOCUS_EVENT:
 		case .MENU_EVENT:
 		case .WINDOW_BUFFER_SIZE_EVENT:
-			append(&res, DebugEvent{sc, Unknown{}})
+			append(&res, Unknown{})
 		}
 
 	}

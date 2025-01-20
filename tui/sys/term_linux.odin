@@ -21,5 +21,5 @@ _get_size :: proc() -> Window_Size {
 	ret := linux.ioctl(linux.STDIN_FILENO, TIOCGWINSZ, uintptr(ws))
 	assert(ret == 0, "ioctl return code non zero")
 
-	return {ws.ws_col, ws.ws_row}
+	return {cast(int)ws.ws_col, cast(int)ws.ws_row}
 }
