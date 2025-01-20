@@ -7,6 +7,7 @@ export def run [
   --out           (-O): string                               # Output for the build
   --exec          (-e)                                       # Should be executed after the build
   --release       (-r)                                       # Build relese
+  --flags         (-F): string                               # Additional flags
   --lint          (-l)                                       # Enable vet flag
   --optimizations (-o): string@optimizations                 # Sets the optimization mode for compilation.
 ] {
@@ -56,6 +57,11 @@ export def run [
     $args
   }
   let args = $args | append (nopen ./collections.json | each { |c| $"-collection:($c.name)=($c.path | path expand)" })
+  let args = if not ($flags | is-empty) {
+    $args | append $flags
+  } else {
+    $args
+  }
 
   run-external odin ...$args
 }

@@ -29,7 +29,7 @@ render_text :: proc(renderer: ^Renderer, insert: InsertAt, text: string, fg: Col
     for row in insert.y ..< insert.y + insert.height {
         for col in insert.x ..< insert.x + insert.width {
             i := utils.tranform_2d_index(renderer.bounds.x, row, col)
-            if i >= len(renderer.state) {
+            if 0 > i || i >= len(renderer.state) {
                 continue
             }
             wi := utils.tranform_2d_index(insert.width, row - insert.y, col - insert.x)
