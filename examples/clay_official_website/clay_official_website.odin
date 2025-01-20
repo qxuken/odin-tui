@@ -176,7 +176,7 @@ HighPerformancePage :: proc(lerpValue: f32, titleTextConfig: clay.TextElementCon
         )
     }
     if clay.UI(clay.ID("PerformanceRightImageOuter"), clay.Layout({sizing = {width = widthSizing}, childAlignment = {x = .CENTER}})) {
-        if clay.UI(clay.ID("PerformanceRightBorder"), clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingFixed(40)}}), clay.BorderAll({width = 2, color = COLOR_LIGHT})) {
+        if clay.UI(clay.ID("PerformanceRightBorder"), clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingGrow({})}}), clay.BorderAll({width = 2, color = COLOR_LIGHT})) {
             if clay.UI(
                 clay.ID("AnimationDemoContainerLeft"),
                 clay.Layout({sizing = {clay.SizingPercent(0.35 + 0.3 * lerpValue), clay.SizingGrow({})}, childAlignment = {y = .CENTER}, padding = clay.PaddingAll(6)}),
@@ -280,7 +280,7 @@ createLayout :: proc(lerpValue: f32) -> clay.ClayArray(clay.RenderCommand) {
     ) {
         if clay.UI(
             clay.ID("Header"),
-            clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingFixed(3)}, childAlignment = {y = .CENTER}, childGap = 10, padding = {left = 4, right = 4}}),
+            clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingFixed(7)}, childAlignment = {y = .CENTER}, childGap = 4, padding = {left = 2, right = 2}}),
         ) {
             clay.Text("Clay", &headerTextConfig)
             if clay.UI(clay.Layout({sizing = {width = clay.SizingGrow({})}})) {}
@@ -288,9 +288,9 @@ createLayout :: proc(lerpValue: f32) -> clay.ClayArray(clay.RenderCommand) {
             if clay.UI(
                 clay.ID("LinkGithubOuter"),
                 clay.Layout({padding = {4, 4, 6, 6}}),
-                clay.BorderOutsideRadius({2, COLOR_RED}, 10),
+                clay.BorderOutsideRadius({1, COLOR_RED}, 1),
                 clay.Rectangle(
-                    {cornerRadius = clay.CornerRadiusAll(10), color = clay.PointerOver(clay.GetElementId(clay.MakeString("LinkGithubOuter"))) ? COLOR_LIGHT_HOVER : COLOR_LIGHT},
+                    {cornerRadius = clay.CornerRadiusAll(1), color = clay.PointerOver(clay.GetElementId(clay.MakeString("LinkGithubOuter"))) ? COLOR_LIGHT_HOVER : COLOR_LIGHT},
                 ),
             ) {
                 clay.Text("Github", clay.TextConfig({fontId = FONT_ID_BODY_24, fontSize = 24, textColor = {61, 26, 5, 255}}))

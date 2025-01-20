@@ -31,12 +31,12 @@ render_border :: proc(renderer: ^Renderer, insert: InsertAt, width: BordersWidth
     }
     if insert.width == 1 {
         col := insert.x
-        for row in insert.y ..< insert.y + insert.height {
+        for row in insert.y ..= insert.y + insert.height {
             modify_cell(renderer, row, col, bg = bg, style = style)
         }
     } else if insert.height == 1 {
         row := insert.y
-        for col in insert.x ..< insert.x + insert.width {
+        for col in insert.x ..= insert.x + insert.width {
             modify_cell(renderer, row, col, bg = bg, style = style)
         }
         return
@@ -45,26 +45,26 @@ render_border :: proc(renderer: ^Renderer, insert: InsertAt, width: BordersWidth
         right_col := insert.x + insert.width
         top_row := insert.y
         bottom_row := insert.y + insert.height
-        for row in insert.y ..< insert.y + insert.height {
+        for row in insert.y ..= insert.y + insert.height {
             if width.left > 0 {
-                for col in left_col ..< left_col + width.left {
+                for col in left_col ..= left_col + width.left {
                     modify_cell(renderer, row, col, bg = bg, style = style)
                 }
             }
             if width.right > 0 {
-                for col in right_col ..< right_col + width.right {
+                for col in right_col - width.right ..= right_col {
                     modify_cell(renderer, row, col, bg = bg, style = style)
                 }
             }
         }
-        for col in insert.x ..< insert.x + insert.width {
+        for col in insert.x ..= insert.x + insert.width {
             if width.top > 0 {
-                for row in top_row ..< top_row + width.top {
+                for row in top_row ..= top_row + width.top {
                     modify_cell(renderer, row, col, bg = bg, style = style)
                 }
             }
             if width.bottom > 0 {
-                for row in bottom_row ..< bottom_row + width.bottom {
+                for row in bottom_row - width.bottom ..= bottom_row {
                     modify_cell(renderer, row, col, bg = bg, style = style)
                 }
             }
