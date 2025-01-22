@@ -280,7 +280,7 @@ createLayout :: proc(lerpValue: f32) -> clay.ClayArray(clay.RenderCommand) {
     ) {
         if clay.UI(
             clay.ID("Header"),
-            clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingFixed(7)}, childAlignment = {y = .CENTER}, childGap = 4, padding = {left = 2, right = 2}}),
+            clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingFixed(3)}, childAlignment = {y = .CENTER}, childGap = 2, padding = {left = 4, right = 2}}),
         ) {
             clay.Text("Clay", &headerTextConfig)
             if clay.UI(clay.Layout({sizing = {width = clay.SizingGrow({})}})) {}
@@ -349,7 +349,6 @@ main :: proc() {
     defer events.destroy_event_poller()
 
     ren := renderer.make_renderer({})
-    debugModeEnabled: bool = false
 
     for {
         defer free_all(context.temp_allocator)
@@ -385,10 +384,6 @@ main :: proc() {
                 case events.Key:
                     if unicode.to_lower(e.val) == 'q' {
                         return
-                    }
-                    if unicode.to_lower(e.val) == 'd' {
-                        debugModeEnabled = !debugModeEnabled
-                        clay.SetDebugModeEnabled(debugModeEnabled)
                     }
                 }
             }

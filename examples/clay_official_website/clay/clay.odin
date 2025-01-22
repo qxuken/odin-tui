@@ -23,9 +23,9 @@ String :: struct {
 }
 
 StringSlice :: struct {
-    length: c.int32_t,
-    chars:  [^]c.char,
-    baseChars:  [^]c.char,
+    length:    c.int32_t,
+    chars:     [^]c.char,
+    baseChars: [^]c.char,
 }
 
 Vector2 :: [2]c.float
@@ -229,9 +229,9 @@ Sizing :: struct {
 }
 
 Padding :: struct {
-    left: u16,
-    right: u16,
-    top: u16,
+    left:   u16,
+    right:  u16,
+    top:    u16,
     bottom: u16,
 }
 
@@ -290,12 +290,12 @@ ErrorType :: enum {
 ErrorData :: struct {
     errorType: ErrorType,
     errorText: String,
-    userData: rawptr
+    userData:  rawptr,
 }
 
 ErrorHandler :: struct {
-    handler: proc "c" (errorData: ErrorData),
-    userData: rawptr
+    handler:  proc "c" (errorData: ErrorData),
+    userData: rawptr,
 }
 
 @(link_prefix = "Clay_", default_calling_convention = "c")
@@ -355,11 +355,11 @@ UI :: proc(configs: ..TypedConfig) -> bool {
 }
 
 Layout :: proc(config: LayoutConfig) -> TypedConfig {
-    return {type = ElementConfigType.Layout, config = _StoreLayoutConfig(config) }
+    return {type = ElementConfigType.Layout, config = _StoreLayoutConfig(config)}
 }
 
-PaddingAll :: proc (padding: u16) -> Padding {
-    return { padding, padding, padding, padding }
+PaddingAll :: proc(padding: u16) -> Padding {
+    return {padding, padding, padding, padding}
 }
 
 Rectangle :: proc(config: RectangleElementConfig) -> TypedConfig {
@@ -395,23 +395,35 @@ Border :: proc(config: BorderElementConfig) -> TypedConfig {
 }
 
 BorderOutside :: proc(outsideBorders: BorderData) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig((BorderElementConfig){left = outsideBorders, right = outsideBorders, top = outsideBorders, bottom = outsideBorders}) }
+    return {
+        type = ElementConfigType.Border,
+        config = _StoreBorderElementConfig((BorderElementConfig){left = outsideBorders, right = outsideBorders, top = outsideBorders, bottom = outsideBorders}),
+    }
 }
 
 BorderOutsideRadius :: proc(outsideBorders: BorderData, radius: f32) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig(
-        (BorderElementConfig){left = outsideBorders, right = outsideBorders, top = outsideBorders, bottom = outsideBorders, cornerRadius = {radius, radius, radius, radius}},
-    ) }
+    return {
+        type = ElementConfigType.Border,
+        config = _StoreBorderElementConfig(
+            (BorderElementConfig){left = outsideBorders, right = outsideBorders, top = outsideBorders, bottom = outsideBorders, cornerRadius = {radius, radius, radius, radius}},
+        ),
+    }
 }
 
 BorderAll :: proc(allBorders: BorderData) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig((BorderElementConfig){left = allBorders, right = allBorders, top = allBorders, bottom = allBorders, betweenChildren = allBorders}) }
+    return {
+        type = ElementConfigType.Border,
+        config = _StoreBorderElementConfig((BorderElementConfig){left = allBorders, right = allBorders, top = allBorders, bottom = allBorders, betweenChildren = allBorders}),
+    }
 }
 
 BorderAllRadius :: proc(allBorders: BorderData, radius: f32) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig(
-        (BorderElementConfig){left = allBorders, right = allBorders, top = allBorders, bottom = allBorders, cornerRadius = {radius, radius, radius, radius}},
-    ) }
+    return {
+        type = ElementConfigType.Border,
+        config = _StoreBorderElementConfig(
+            (BorderElementConfig){left = allBorders, right = allBorders, top = allBorders, bottom = allBorders, cornerRadius = {radius, radius, radius, radius}},
+        ),
+    }
 }
 
 CornerRadiusAll :: proc(radius: f32) -> CornerRadius {
@@ -439,5 +451,5 @@ MakeString :: proc(label: string) -> String {
 }
 
 ID :: proc(label: string, index: u32 = 0) -> TypedConfig {
-    return { type = ElementConfigType.Id, id = _HashString(MakeString(label), index, 0) }
+    return {type = ElementConfigType.Id, id = _HashString(MakeString(label), index, 0)}
 }
