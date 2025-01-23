@@ -4,7 +4,9 @@ import "clay"
 import "core:c"
 import "core:fmt"
 import "core:io"
+import "core:mem/virtual"
 import "core:os"
+import "core:strings"
 import "core:time"
 import "core:unicode"
 import "tui:events"
@@ -398,8 +400,13 @@ main :: proc() {
         renderCommands: clay.ClayArray(clay.RenderCommand) = createLayout(animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue))
         clayTuiRender(&ren, &renderCommands)
 
-        sys.clear_screen(out_stream)
-        io.write_string(out_stream, renderer.to_string(&ren))
+
+        arena_allocator := virtual.arena_allocator(&ren.arena)
+        out_builder := strings.builder_make(arena_allocator)
+        sys.clear_screen(&out_builder)
+        renderer.render_to_builder(&ren, &out_builder)
+        rendered := strings.to_string(out_builder)
+        io.write_string(out_stream, rendered)
         io.flush(out_stream)
 
         time.sleep(target_delta)
