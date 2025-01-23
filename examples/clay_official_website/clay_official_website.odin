@@ -14,6 +14,8 @@ import "tui:renderer"
 import "tui:sys"
 import "tui:widgets"
 
+TARGET_FPS :: 60
+
 window_height: int
 window_width: int
 target_delta :: time.Second / 120
@@ -352,6 +354,11 @@ main :: proc() {
 
     ren := renderer.make_renderer({})
 
+    frame_time := time.now()
+    fps := 0
+    frames_counter_value := 0
+    frames_counter_delta: time.Duration
+
     for {
         defer free_all(context.temp_allocator)
 
@@ -400,6 +407,8 @@ main :: proc() {
         renderCommands: clay.ClayArray(clay.RenderCommand) = createLayout(animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue))
         clayTuiRender(&ren, &renderCommands)
 
+        fps_str := fmt.tprint(fps)
+        renderer.render_text(&ren, {size.width - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)
 
         arena_allocator := virtual.arena_allocator(&ren.arena)
         out_builder := strings.builder_make(arena_allocator)
@@ -409,6 +418,17 @@ main :: proc() {
         io.write_string(out_stream, rendered)
         io.flush(out_stream)
 
-        time.sleep(target_delta)
+        curr_time := time.now()
+        delta_time := time.diff(frame_time, curr_time)
+        frames_counter_delta += delta_time
+        if frames_counter_delta >= time.Second {
+            fps = frames_counter_value
+            frames_counter_value = 0
+            frames_counter_delta = 0
+        } else {
+            frames_counter_value += 1
+        }
+        time.sleep(max(time.Nanosecond, time.Second / TARGET_FPS - delta_time))
+        frame_time = curr_time
     }
 }

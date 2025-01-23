@@ -17,6 +17,8 @@ import "tui:renderer"
 import "tui:sys"
 import "tui:widgets"
 
+TARGET_FPS :: 60
+
 main :: proc() {
     when ODIN_DEBUG {
         track: mem.Tracking_Allocator
@@ -56,6 +58,10 @@ main :: proc() {
     defer events.destroy_event_poller()
 
     ren := renderer.make_renderer({})
+    frame_time := time.now()
+    fps := 0
+    frames_counter_value := 0
+    frames_counter_delta: time.Duration
     for {
         defer free_all(context.temp_allocator)
         size := sys.get_size()
@@ -69,7 +75,6 @@ main :: proc() {
                 }
             }
         }
-
         renderer.render_text(&ren, {0, 0, 16, 1}, "Enter something:", fg = .BrightGreen, bg = .Red, style = .Blinking)
         size_str := fmt.tprint(size)
         renderer.render_text(&ren, {2, 2, len(size_str), 1}, size_str, fg = .Black, bg = .White, style = .Bold)
@@ -83,7 +88,10 @@ main :: proc() {
         renderer.render_box(&ren, {19, 13, 6, 4}, .Blue)
         renderer.render_text(&ren, {19, 14, 6, 2}, "Sample Text", fg = .Red, style = .Inverse)
         renderer.render_box(&ren, {24, 12, 6, 3}, .Cyan)
-        renderer.render_text(&ren, {21, 12, 6, 1}, "Text", fg = .Black, style = .Italic)
+        renderer.render_text(&ren, {21, 12, 6, 1}, "Text", fg = renderer.RBGColor{69, 69, 69}, style = .Italic)
+
+        fps_str := fmt.tprint(fps)
+        renderer.render_text(&ren, {size.width - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)
 
         arena_allocator := virtual.arena_allocator(&ren.arena)
         out_builder := strings.builder_make(arena_allocator)
@@ -93,7 +101,18 @@ main :: proc() {
         io.write_string(out_stream, rendered)
         io.flush(out_stream)
 
-        time.sleep(1.667e+7)
+        curr_time := time.now()
+        delta_time := time.diff(frame_time, curr_time)
+        frames_counter_delta += delta_time
+        if frames_counter_delta >= time.Second {
+            fps = frames_counter_value
+            frames_counter_value = 0
+            frames_counter_delta = 0
+        } else {
+            frames_counter_value += 1
+        }
+        time.sleep(max(time.Nanosecond, time.Second / TARGET_FPS - delta_time))
+        frame_time = curr_time
     }
 
     fmt.print("\nPress ENTER to exit...")
