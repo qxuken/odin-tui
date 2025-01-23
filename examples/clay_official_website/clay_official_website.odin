@@ -159,56 +159,6 @@ DeclarativeSyntaxPageDesktop :: proc() {
     }
 }
 
-ColorLerp :: proc(a: clay.Color, b: clay.Color, amount: f32) -> clay.Color {
-    return clay.Color{a.r + (b.r - a.r) * amount, a.g + (b.g - a.g) * amount, a.b + (b.b - a.b) * amount, a.a + (b.a - a.a) * amount}
-}
-
-LOREM_IPSUM_TEXT := "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-
-HighPerformancePage :: proc(lerpValue: f32, titleTextConfig: clay.TextElementConfig, widthSizing: clay.SizingAxis) {
-    if clay.UI(clay.ID("PerformanceLeftText"), clay.Layout({sizing = {width = widthSizing}, layoutDirection = .TOP_TO_BOTTOM, childGap = 8})) {
-        clay.Text("High Performance", clay.TextConfig(titleTextConfig))
-        if clay.UI(clay.Layout({sizing = {width = clay.SizingGrow({max = 5})}})) {}
-        clay.Text("Fast enough to recompute your entire UI every frame.", clay.TextConfig({fontSize = 28, fontId = FONT_ID_BODY_36, textColor = COLOR_LIGHT}))
-        clay.Text(
-            "Small memory footprint (3.5mb default) with static allocation & reuse. No malloc / free.",
-            clay.TextConfig({fontSize = 28, fontId = FONT_ID_BODY_36, textColor = COLOR_LIGHT}),
-        )
-        clay.Text(
-            "Simplify animations and reactive UI design by avoiding the standard performance hacks.",
-            clay.TextConfig({fontSize = 28, fontId = FONT_ID_BODY_36, textColor = COLOR_LIGHT}),
-        )
-    }
-    if clay.UI(clay.ID("PerformanceRightImageOuter"), clay.Layout({sizing = {width = widthSizing}, childAlignment = {x = .CENTER}})) {
-        if clay.UI(clay.ID("PerformanceRightBorder"), clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingGrow({})}}), clay.BorderAll({width = 2, color = COLOR_LIGHT})) {
-            if clay.UI(
-                clay.ID("AnimationDemoContainerLeft"),
-                clay.Layout({sizing = {clay.SizingPercent(0.35 + 0.3 * lerpValue), clay.SizingGrow({})}, childAlignment = {y = .CENTER}, padding = clay.PaddingAll(6)}),
-                clay.Rectangle({color = ColorLerp(COLOR_RED, COLOR_ORANGE, lerpValue)}),
-            ) {
-                clay.Text(LOREM_IPSUM_TEXT, clay.TextConfig({fontSize = 16, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT}))
-            }
-            if clay.UI(
-                clay.ID("AnimationDemoContainerRight"),
-                clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingGrow({})}, childAlignment = {y = .CENTER}, padding = clay.PaddingAll(16)}),
-                clay.Rectangle({color = ColorLerp(COLOR_ORANGE, COLOR_RED, lerpValue)}),
-            ) {
-                clay.Text(LOREM_IPSUM_TEXT, clay.TextConfig({fontSize = 16, fontId = FONT_ID_BODY_16, textColor = COLOR_LIGHT}))
-            }
-        }
-    }
-}
-
-HighPerformancePageDesktop :: proc(lerpValue: f32) {
-    if clay.UI(
-        clay.ID("PerformanceDesktop"),
-        clay.Layout({sizing = {clay.SizingGrow({}), clay.SizingFit({min = cast(f32)window_height - 50})}, childAlignment = {y = .CENTER}, padding = {8, 8, 3, 3}, childGap = 6}),
-        clay.Rectangle({color = COLOR_RED}),
-    ) {
-        HighPerformancePage(lerpValue, {fontSize = 52, fontId = FONT_ID_TITLE_52, textColor = COLOR_LIGHT}, clay.SizingPercent(0.5))
-    }
-}
-
 RendererButtonActive :: proc(index: i32, text: string) {
     if clay.UI(
         clay.Layout({sizing = {width = clay.SizingFixed(30)}, padding = clay.PaddingAll(6)}),
@@ -266,16 +216,7 @@ RendererPageDesktop :: proc() {
     }
 }
 
-ScrollbarData :: struct {
-    clickOrigin:    clay.Vector2,
-    positionOrigin: clay.Vector2,
-    mouseDown:      bool,
-}
-
-scrollbarData := ScrollbarData{}
-animationLerpValue: f32 = -1.0
-
-createLayout :: proc(lerpValue: f32) -> clay.ClayArray(clay.RenderCommand) {
+createLayout :: proc() -> clay.ClayArray(clay.RenderCommand) {
     clay.BeginLayout()
     if clay.UI(
         clay.ID("OuterContainer"),
@@ -315,7 +256,6 @@ createLayout :: proc(lerpValue: f32) -> clay.ClayArray(clay.RenderCommand) {
             LandingPageDesktop()
             FeatureBlocksDesktop()
             DeclarativeSyntaxPageDesktop()
-            HighPerformancePageDesktop(lerpValue)
             RendererPageDesktop()
         }
     }
@@ -369,11 +309,6 @@ main :: proc() {
         renderer.clean_renderer_cycle(&ren, {size.width, size.height})
         clay.SetLayoutDimensions({cast(f32)window_width, cast(f32)window_height})
 
-        animationLerpValue += cast(f32)target_delta
-        if animationLerpValue > 1 {
-            animationLerpValue = animationLerpValue - 2
-        }
-
         evts, ok := events.poll_event()
         if ok {
             scroll_amount: f32
@@ -404,7 +339,7 @@ main :: proc() {
             }
         }
 
-        renderCommands: clay.ClayArray(clay.RenderCommand) = createLayout(animationLerpValue < 0 ? (animationLerpValue + 1) : (1 - animationLerpValue))
+        renderCommands: clay.ClayArray(clay.RenderCommand) = createLayout()
         clayTuiRender(&ren, &renderCommands)
 
         fps_str := fmt.tprint(fps)
@@ -428,6 +363,7 @@ main :: proc() {
         } else {
             frames_counter_value += 1
         }
+
         time.sleep(max(time.Nanosecond, time.Second / TARGET_FPS - delta_time))
         frame_time = curr_time
     }
