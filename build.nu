@@ -1,8 +1,9 @@
 def optimizations [] { ["none", "minimal", "size", "speed", "aggresive"] }
+def examples [] { ls --short-names ./examples | each { |e| $e.name } }
 
-export def run [
-  --entry_dir     (-D): string = "examples"                  # Base folder
-  --entry         (-E): string = "full.odin"           # Entry for the build
+export def run-example [
+  --entry_dir     (-D): string          = "examples"         # Base folder
+  --entry         (-E): string@examples = "full.odin"        # Entry for the build
   --bin_name      (-n): string                               # Name of the binary that will be generated
   --out           (-O): string                               # Output for the build
   --exec          (-e)                                       # Should be executed after the build
@@ -65,7 +66,7 @@ export def run [
 
   run-external odin ...$args
 }
-export alias r = run
+export alias r = run-example
 
 export def clean [] {
   rm -r build
