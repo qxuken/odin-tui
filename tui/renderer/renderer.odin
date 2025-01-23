@@ -48,7 +48,7 @@ modify_cell :: proc(r: ^Renderer, row, col: int, value := ' ', fg: Color = .DoNo
 make_renderer :: proc(bounds: Bounds) -> Renderer {
     arena: virtual.Arena
     err := virtual.arena_init_growing(&arena)
-    assert(err == .None)
+    ensure(err == .None)
     arena_allocator := virtual.arena_allocator(&arena)
     state := make([dynamic]Cell, bounds.x * bounds.y, allocator = arena_allocator)
     return {state, bounds, arena}
