@@ -1,6 +1,7 @@
 package main
 
 import "clay"
+import "core:fmt"
 import "core:math"
 import "core:strings"
 import "tui:renderer"
@@ -55,11 +56,44 @@ clayTuiRender :: proc(r: ^renderer.Renderer, renderCommands: ^clay.ClayArray(cla
                 bg = clayColorToTuiColor(config.left.color),
             )
         case clay.RenderCommandType.ScissorStart:
+            renderer.start_scissors(r, boundingBox)
         case clay.RenderCommandType.ScissorEnd:
+            renderer.end_scissors(r)
         case clay.RenderCommandType.Image:
         case clay.RenderCommandType.None:
         case clay.RenderCommandType.Custom:
             {}
         }
     }
+}
+
+clayCommandTPrint :: proc(renderCommands: ^clay.ClayArray(clay.RenderCommand)) -> string {
+    out := strings.builder_make(allocator = context.temp_allocator)
+    for i in 0 ..< int(renderCommands.length) {
+        renderCommand := clay.RenderCommandArray_Get(renderCommands, cast(i32)i)
+        strings.write_string(&out, fmt.tprintfln("%#v", renderCommand^))
+        switch (renderCommand.commandType) {
+        case clay.RenderCommandType.Text:
+            config: ^clay.TextElementConfig = renderCommand.config.textElementConfig
+            strings.write_string(&out, fmt.tprintfln("text: %v", config^))
+            strings.write_string(&out, fmt.tprintfln("text_content: %v", string(renderCommand.text.chars[:renderCommand.text.length])))
+        case clay.RenderCommandType.Rectangle:
+            config: ^clay.RectangleElementConfig = renderCommand.config.rectangleElementConfig
+            strings.write_string(&out, fmt.tprintfln("rectangle: %v", config^))
+        case clay.RenderCommandType.Border:
+            config := renderCommand.config.borderElementConfig
+            strings.write_string(&out, fmt.tprintfln("text: %v", config^))
+        case clay.RenderCommandType.ScissorStart:
+            strings.write_string(&out, fmt.tprintfln("ScissorStart"))
+        case clay.RenderCommandType.ScissorEnd:
+            strings.write_string(&out, fmt.tprintfln("ScissorEnd"))
+        case clay.RenderCommandType.Image:
+            strings.write_string(&out, fmt.tprintfln("Image"))
+        case clay.RenderCommandType.None:
+            strings.write_string(&out, fmt.tprintfln("None"))
+        case clay.RenderCommandType.Custom:
+            strings.write_string(&out, fmt.tprintfln("Custom"))
+        }
+    }
+    return strings.to_string(out)
 }

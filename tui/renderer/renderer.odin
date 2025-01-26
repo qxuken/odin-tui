@@ -21,9 +21,10 @@ Cell :: struct {
 
 // TODO: Check if there more efficient buffer on windows
 Renderer :: struct {
-    state:  [dynamic]Cell,
-    bounds: Bounds,
-    arena:  virtual.Arena,
+    state:    [dynamic]Cell,
+    bounds:   Bounds,
+    arena:    virtual.Arena,
+    scissors: Maybe(InsertAt),
 }
 
 modify_cell :: proc(r: ^Renderer, row, col: int, value := ' ', fg: Color = .DoNotChange, bg: Color = .DoNotChange, style: Style = .DoNotChange) -> bool {
@@ -51,13 +52,14 @@ make_renderer :: proc(bounds: Bounds) -> Renderer {
     ensure(err == .None)
     arena_allocator := virtual.arena_allocator(&arena)
     state := make([dynamic]Cell, bounds.x * bounds.y, allocator = arena_allocator)
-    return {state, bounds, arena}
+    return {state, bounds, arena, nil}
 }
 
 clean_renderer_cycle :: proc(renderer: ^Renderer, bounds: Bounds) {
     virtual.arena_free_all(&renderer.arena)
     arena_allocator := virtual.arena_allocator(&renderer.arena)
     renderer.bounds = bounds
+    renderer.scissors = nil
     renderer.state = make([dynamic]Cell, bounds.x * bounds.y, allocator = arena_allocator)
 }
 

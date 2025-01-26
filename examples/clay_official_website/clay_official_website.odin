@@ -2,6 +2,7 @@ package main
 
 import "clay"
 import "core:c"
+import "core:encoding/json"
 import "core:fmt"
 import "core:io"
 import "core:mem/virtual"
@@ -294,7 +295,7 @@ main :: proc() {
 
     ren := renderer.make_renderer({})
 
-    frame_time := time.now()
+    frame_time := time.tick_now()
     fps := 0
     frames_counter_value := 0
     frames_counter_delta: time.Duration
@@ -339,8 +340,8 @@ main :: proc() {
             }
         }
 
-        renderCommands: clay.ClayArray(clay.RenderCommand) = createLayout()
-        clayTuiRender(&ren, &renderCommands)
+        render_commands: clay.ClayArray(clay.RenderCommand) = createLayout()
+        clayTuiRender(&ren, &render_commands)
 
         fps_str := fmt.tprint(fps)
         renderer.render_text(&ren, {size.width - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)
@@ -353,18 +354,24 @@ main :: proc() {
         io.write_string(out_stream, rendered)
         io.flush(out_stream)
 
-        curr_time := time.now()
-        delta_time := time.diff(frame_time, curr_time)
+        delta_time := time.tick_since(frame_time)
         frames_counter_delta += delta_time
         if frames_counter_delta >= time.Second {
             fps = frames_counter_value
             frames_counter_value = 0
             frames_counter_delta = 0
+
+            // log_filename := fmt.tprintf("./logs/%v.json", time.tick_now())
+            // w_err := os.write_entire_file_or_err(log_filename, transmute([]u8)clayCommandTPrint(&render_commands))
+            // if w_err != nil {
+            //     fmt.eprintfln("Unable to write file(%v): %v", log_filename, w_err)
+            //     os.exit(1)
+            // }
         } else {
             frames_counter_value += 1
         }
 
+        frame_time = time.tick_now()
         time.sleep(max(time.Nanosecond, time.Second / TARGET_FPS - delta_time))
-        frame_time = curr_time
     }
 }

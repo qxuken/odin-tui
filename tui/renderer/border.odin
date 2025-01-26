@@ -29,33 +29,31 @@ render_border :: proc(renderer: ^Renderer, insert: InsertAt, width: BordersWidth
     if insert.width <= 0 || insert.height <= 0 {
         return
     }
-    left_col := insert.x
-    right_col := insert.x + insert.width
-    top_row := insert.y
-    bottom_row := insert.y + insert.height
+    row_start, row_end, col_start, col_end := scissor_bound_indicies(renderer, insert)
+
     if insert.width == 1 {
-        for row in top_row ..= bottom_row {
-            modify_cell(renderer, row, left_col, bg = bg, style = style)
+        for row in row_start ..= row_end {
+            modify_cell(renderer, row, col_start, bg = bg, style = style)
         }
     } else if insert.height == 1 {
-        for col in left_col - width.left ..= left_col {
-            modify_cell(renderer, top_row, col, bg = bg, style = style)
+        for col in col_start - width.left ..= col_start {
+            modify_cell(renderer, row_start, col, bg = bg, style = style)
         }
         return
     } else {
-        for row in top_row ..= bottom_row {
-            for col in left_col ..< left_col + width.left {
+        for row in row_start ..= row_end {
+            for col in col_start ..< col_start + width.left {
                 modify_cell(renderer, row, col, bg = bg, style = style)
             }
-            for col in right_col - width.right + 1 ..= right_col {
+            for col in col_end - width.right + 1 ..= col_end {
                 modify_cell(renderer, row, col, bg = bg, style = style)
             }
         }
-        for col in left_col ..= right_col {
-            for row in top_row ..< top_row + width.top {
+        for col in col_start ..= col_end {
+            for row in row_start ..< row_start + width.top {
                 modify_cell(renderer, row, col, bg = bg, style = style)
             }
-            for row in bottom_row - width.bottom + 1 ..= bottom_row {
+            for row in row_end - width.bottom + 1 ..= row_end {
                 modify_cell(renderer, row, col, bg = bg, style = style)
             }
         }
