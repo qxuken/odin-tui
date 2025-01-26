@@ -11,39 +11,29 @@ InsertAt :: struct {
     width, height: int,
 }
 
+AsciiBorderData :: struct {
+    rounded: bool,
+}
+TextData :: struct {
+    // TODO: add []u8 variant for graphemes
+    value: rune,
+}
+CellData :: union {
+    AsciiBorderData,
+    TextData,
+}
 Cell :: struct {
     fg:    Color,
     bg:    Color,
-    style: Style,
-    // TODO: Add graphemes
-    value: rune,
+    style: Maybe(Style),
+    data:  CellData,
 }
 
-// TODO: Check if there more efficient buffer on windows
 Renderer :: struct {
     state:    [dynamic]Cell,
     bounds:   Bounds,
     arena:    virtual.Arena,
     scissors: Maybe(InsertAt),
-}
-
-modify_cell :: proc(r: ^Renderer, row, col: int, value := ' ', fg: Color = .DoNotChange, bg: Color = .DoNotChange, style: Style = .DoNotChange) -> bool {
-    i := utils.tranform_2d_index(r.bounds.x, row, col)
-    if 0 > i || i >= len(r.state) {
-        return false
-    }
-    cell := &r.state[i]
-    if fg != .DoNotChange {
-        cell.fg = fg
-    }
-    if bg != .DoNotChange {
-        cell.bg = bg
-    }
-    if style != .DoNotChange {
-        cell.style = style
-    }
-    cell.value = value
-    return true
 }
 
 make_renderer :: proc(bounds: Bounds) -> Renderer {

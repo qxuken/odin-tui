@@ -6,57 +6,59 @@ import "tui:utils"
 
 render_to_builder :: proc(renderer: ^Renderer, out: ^strings.Builder) {
     arena_allocator := virtual.arena_allocator(&renderer.arena)
-    c_bg: Color = SimpleColor.None
-    c_fg: Color = SimpleColor.None
-    c_style := Style.None
-    contigues_empty := 0
+
+    c_bg: Color
+    c_fg: Color
+    c_style: Maybe(Style)
+    contigues_len := 0
+
     for cell, i in renderer.state {
-        if contigues_empty > 0 && i % renderer.bounds[0] == 0 {
+        if contigues_len > 0 && i % renderer.bounds.x == 0 {
+            if c_bg != SimpleColor.Default || c_fg != SimpleColor.Default || c_style != nil {
+                gap := strings.repeat(" ", contigues_len, arena_allocator)
+                strings.write_string(out, gap)
+            }
             strings.write_string(out, "\r\n")
-            contigues_empty = 0
+            contigues_len = 0
         }
-        if cell.bg == .None && cell.fg == .None && cell.style == .None && (cell.value == 0 || cell.value == ' ') {
-            contigues_empty += 1
-        } else if contigues_empty > 0 {
-            gap := strings.repeat(" ", contigues_empty, arena_allocator)
+
+        if cell.fg == c_fg && cell.bg == c_bg && cell.style == c_style && cell.data == nil {
+            contigues_len += 1
+            continue
+        } else if contigues_len > 0 {
+            gap := strings.repeat(" ", contigues_len, arena_allocator)
             strings.write_string(out, gap)
-            contigues_empty = 0
+            contigues_len = 0
         }
-        if (cell.bg == .None && c_bg != .None) || (cell.fg == .None && c_fg != .None) {
-            strings.write_string(out, reset_code())
-            if cell.fg != .None {
-                strings.write_string(out, fg_color_code(cell.fg, arena_allocator))
-            }
-            if cell.bg != .None {
-                strings.write_string(out, bg_color_code(cell.bg, arena_allocator))
-            }
-        } else {
-            if cell.bg != .None && cell.bg != c_bg {
-                strings.write_string(out, bg_color_code(cell.bg, arena_allocator))
-            }
-            if cell.fg != .None && cell.fg != c_fg {
-                strings.write_string(out, fg_color_code(cell.fg, arena_allocator))
-            }
-        }
+
         if cell.bg != c_bg {
+            strings.write_string(out, bg_color_code(cell.bg, arena_allocator))
             c_bg = cell.bg
         }
         if cell.fg != c_fg {
+            strings.write_string(out, fg_color_code(cell.fg, arena_allocator))
             c_fg = cell.fg
         }
         if cell.style != c_style {
-            strings.write_string(out, end_style_code(c_style))
-            if cell.style != .None {
-                start_style_code(cell.style)
+            if s, ok := c_style.?; ok {
+                strings.write_string(out, end_style_code(s))
+            }
+            if s, ok := cell.style.?; ok {
+                strings.write_string(out, start_style_code(s))
             }
             c_style = cell.style
         }
 
-        if (cell.bg != .None || cell.fg != .None || cell.style != .None) && (cell.value == 0 || cell.value == ' ') {
-            strings.write_rune(out, ' ')
+        if v, ok := cell.data.(TextData); ok {
+            strings.write_rune(out, v.value)
         } else {
-            strings.write_rune(out, cell.value)
+            strings.write_rune(out, ' ')
         }
+    }
+
+    if contigues_len > 0 && (c_bg != SimpleColor.Default || c_fg != SimpleColor.Default || c_style != nil) {
+        gap := strings.repeat(" ", contigues_len, arena_allocator)
+        strings.write_string(out, gap)
     }
     strings.write_string(out, reset_code())
 }

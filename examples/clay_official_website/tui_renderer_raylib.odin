@@ -7,7 +7,7 @@ import "core:strings"
 import "tui:renderer"
 
 clayColorToTuiColor :: proc(color: clay.Color) -> renderer.RBGColor {
-    return renderer.RBGColor{color.r, color.g, color.b}
+    return renderer.RBGColor{cast(int)color.r, cast(int)color.g, cast(int)color.b}
 }
 
 measureText :: proc "c" (text: clay.StringSlice, config: ^clay.TextElementConfig, userData: uintptr) -> clay.Dimensions {

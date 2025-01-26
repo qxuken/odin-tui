@@ -23,15 +23,16 @@ wrap_text :: proc(text: string, bounds: Bounds, allocator: runtime.Allocator) ->
     return res[:]
 }
 
-render_text :: proc(renderer: ^Renderer, insert: InsertAt, text: string, fg: Color = .DoNotChange, bg: Color = .DoNotChange, style: Style = .DoNotChange) {
+render_text :: proc(renderer: ^Renderer, insert: InsertAt, text: string, fg: Maybe(Color) = nil, bg: Maybe(Color) = nil, style: Maybe(Style) = nil) {
     arena_allocator := virtual.arena_allocator(&renderer.arena)
     wrapped := wrap_text(text, {insert.width, insert.height}, arena_allocator)
 
     row_start, row_end, col_start, col_end := scissor_bound_indicies(renderer, insert)
+
     for row in row_start ..< row_end {
         for col in col_start ..< col_end {
             wi := utils.tranform_2d_index(insert.width, row - insert.y, col - insert.x)
-            modify_cell(renderer, row, col, wrapped[wi], fg, bg, style)
+            put_text_cell(renderer, row, col, wrapped[wi], fg, bg, style)
         }
     }
 }

@@ -25,36 +25,37 @@ BordersWidth :: struct {
     left:   int,
 }
 
-render_border :: proc(renderer: ^Renderer, insert: InsertAt, width: BordersWidth, bg: Color = .DoNotChange, style: Style = .DoNotChange) {
+render_border :: proc(renderer: ^Renderer, insert: InsertAt, width: BordersWidth, bg: Color = SimpleColor.Default, style: Maybe(Style) = nil) {
     if insert.width <= 0 || insert.height <= 0 {
         return
     }
     row_start, row_end, col_start, col_end := scissor_bound_indicies(renderer, insert)
+    cell := Cell{SimpleColor.Default, bg, style, nil}
 
     if insert.width == 1 {
         for row in row_start ..= row_end {
-            modify_cell(renderer, row, col_start, bg = bg, style = style)
+            put_cell(renderer, row, col_start, cell)
         }
     } else if insert.height == 1 {
         for col in col_start - width.left ..= col_start {
-            modify_cell(renderer, row_start, col, bg = bg, style = style)
+            put_cell(renderer, row_start, col, cell)
         }
         return
     } else {
         for row in row_start ..= row_end {
             for col in col_start ..< col_start + width.left {
-                modify_cell(renderer, row, col, bg = bg, style = style)
+                put_cell(renderer, row, col, cell)
             }
             for col in col_end - width.right + 1 ..= col_end {
-                modify_cell(renderer, row, col, bg = bg, style = style)
+                put_cell(renderer, row, col, cell)
             }
         }
         for col in col_start ..= col_end {
             for row in row_start ..< row_start + width.top {
-                modify_cell(renderer, row, col, bg = bg, style = style)
+                put_cell(renderer, row, col, cell)
             }
             for row in row_end - width.bottom + 1 ..= row_end {
-                modify_cell(renderer, row, col, bg = bg, style = style)
+                put_cell(renderer, row, col, cell)
             }
         }
     }
