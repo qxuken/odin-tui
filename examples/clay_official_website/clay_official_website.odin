@@ -361,7 +361,7 @@ main :: proc() {
             frames_counter_value = 0
             frames_counter_delta = 0
 
-            log_filename := fmt.tprintf("./logs/%v.json", time.tick_now())
+            log_filename := fmt.tprintf("./logs/%v.json", transmute(i64)time.tick_now())
             w_err := os.write_entire_file_or_err(log_filename, transmute([]u8)clay_command_tprint(&render_commands))
             if w_err != nil {
                 fmt.eprintfln("Unable to write file(%v): %v", log_filename, w_err)

@@ -47,11 +47,48 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
         row := 0
         col := 0
         word_start := -1
-        for r, i in text {
-            if (i > 0 && i % bounds.x == 0) || r == '\n' {
+        word_loop: for r, i in text {
+            if (r == ' ' || r == '\n' || r == '\t') {
+                if word_start > 0 {
+                    word_len := i - word_start
+                    remaining_len := bounds.x - col
+                    if word_len > remaining_len && word_len <= bounds.x {
+                        row += 1
+                        col = 0
+                    }
+                    for wi in word_start ..< i {
+                        if wi > 0 && wi % bounds.x == 0 {
+                            row += 1
+                            col = 0
+                        }
+                        ri := utils.tranform_2d_index(bounds.x, row, col)
+                        if ri >= runes_count {
+                            break word_loop
+                        }
+                        res[ri] = r
+                        col += 1
+                    }
+                    word_start = -1
+                } else {
+                    if i > 0 && i % bounds.x == 0 {
+                        row += 1
+                        col = 0
+                    }
+                    ri := utils.tranform_2d_index(bounds.x, row, col)
+                    if ri >= runes_count {
+                        break word_loop
+                    }
+                    res[ri] = r
+                    col += 1
+                }
+            } else if word_start == -1 {
+                word_start = i
+            }
+        }
+        for r, i in text[word_start:] {
+            if i > 0 && i % bounds.x == 0 {
                 row += 1
                 col = 0
-                continue
             }
             ri := utils.tranform_2d_index(bounds.x, row, col)
             if ri >= runes_count {
