@@ -1,11 +1,10 @@
 package renderer
-
 import "core:fmt"
 import "tui:sys"
 
 // https://en.wikipedia.org/wiki/ANSI_escape_code
 
-SimpleColor :: enum {
+Simple_Color :: enum {
     Default,
     Black,
     Red,
@@ -25,11 +24,11 @@ SimpleColor :: enum {
     BrightWhite,
 }
 
-RBGColor :: [3]int
+RBG_Color :: [3]int
 
 Color :: union #no_nil {
-    SimpleColor,
-    RBGColor,
+    Simple_Color,
+    RBG_Color,
 }
 
 Style :: enum {
@@ -48,9 +47,9 @@ reset_code :: proc() -> string {
 
 fg_color_code :: proc(color: Color, allocator := context.temp_allocator) -> string {
     switch c in color {
-    case SimpleColor:
+    case Simple_Color:
         return fg_simple_color_code(c)
-    case RBGColor:
+    case RBG_Color:
         return fg_rbg_code(c, allocator)
     }
     unreachable()
@@ -58,23 +57,23 @@ fg_color_code :: proc(color: Color, allocator := context.temp_allocator) -> stri
 
 bg_color_code :: proc(color: Color, allocator := context.temp_allocator) -> string {
     switch c in color {
-    case SimpleColor:
+    case Simple_Color:
         return bg_simple_color_code(c)
-    case RBGColor:
+    case RBG_Color:
         return bg_rbg_code(c, allocator)
     }
     unreachable()
 }
 
-fg_rbg_code :: proc(color: RBGColor, allocator := context.temp_allocator) -> string {
+fg_rbg_code :: proc(color: RBG_Color, allocator := context.temp_allocator) -> string {
     return fmt.aprintf(sys.csi + "38;2;%v;%v;%vm", color.r, color.g, color.b, allocator = allocator)
 }
 
-bg_rbg_code :: proc(color: RBGColor, allocator := context.temp_allocator) -> string {
+bg_rbg_code :: proc(color: RBG_Color, allocator := context.temp_allocator) -> string {
     return fmt.aprintf(sys.csi + "48;2;%v;%v;%vm", color.r, color.g, color.b, allocator = allocator)
 }
 
-fg_simple_color_code :: proc(color: SimpleColor) -> string {
+fg_simple_color_code :: proc(color: Simple_Color) -> string {
     switch color {
     case .Default:
         return sys.csi + "39m"
@@ -114,7 +113,7 @@ fg_simple_color_code :: proc(color: SimpleColor) -> string {
     unreachable()
 }
 
-bg_simple_color_code :: proc(color: SimpleColor, bright := false) -> string {
+bg_simple_color_code :: proc(color: Simple_Color, bright := false) -> string {
     switch color {
     case .Default:
         return sys.csi + "49m"

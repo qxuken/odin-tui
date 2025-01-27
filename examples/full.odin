@@ -86,9 +86,9 @@ main :: proc() {
         renderer.render_box(&ren, {21, 10, 6, 6}, .BrightYellow)
         renderer.render_box(&ren, {23, 11, 5, 5}, .Red)
         renderer.render_box(&ren, {19, 13, 6, 4}, .Blue)
-        renderer.render_text(&ren, {19, 14, 6, 2}, "Sample Text", fg = renderer.RBGColor{42, 42, 42}, style = .Inverse)
+        renderer.render_text(&ren, {19, 14, 7, 2}, "Sample Text", fg = renderer.RBG_Color{42, 42, 42}, style = .Inverse)
         renderer.render_box(&ren, {24, 12, 6, 3}, .Cyan)
-        renderer.render_text(&ren, {21, 12, 6, 1}, "Text", fg = renderer.RBGColor{69, 69, 69}, style = .Italic)
+        renderer.render_text(&ren, {21, 12, 6, 1}, "Text", fg = renderer.RBG_Color{69, 69, 69}, style = .Italic)
 
         fps_str := fmt.tprint(fps)
         renderer.render_text(&ren, {size.width - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)

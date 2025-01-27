@@ -6,34 +6,34 @@ import "tui:utils"
 
 Coord :: [2]int
 Bounds :: [2]int
-InsertAt :: struct {
+Insert_At :: struct {
     x, y:          int,
     width, height: int,
 }
 
-AsciiBorderData :: struct {
+Ascii_Border_Data :: struct {
     rounded: bool,
 }
-TextData :: struct {
+Text_Data :: struct {
     // TODO: add []u8 variant for graphemes
     value: rune,
 }
-CellData :: union {
-    AsciiBorderData,
-    TextData,
+Cell_Data :: union {
+    Ascii_Border_Data,
+    Text_Data,
 }
 Cell :: struct {
     fg:    Color,
     bg:    Color,
     style: Maybe(Style),
-    data:  CellData,
+    data:  Cell_Data,
 }
 
 Renderer :: struct {
     state:    [dynamic]Cell,
     bounds:   Bounds,
     arena:    virtual.Arena,
-    scissors: Maybe(InsertAt),
+    scissors: Maybe(Insert_At),
 }
 
 make_renderer :: proc(bounds: Bounds) -> Renderer {

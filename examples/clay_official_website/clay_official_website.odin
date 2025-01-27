@@ -281,11 +281,11 @@ main :: proc() {
 
     size := sys.get_size()
 
-    minMemorySize: u32 = clay.MinMemorySize()
-    memory := make([^]u8, minMemorySize)
-    arena: clay.Arena = clay.CreateArenaWithCapacityAndMemory(minMemorySize, memory)
+    min_memory_size: u32 = clay.MinMemorySize()
+    memory := make([^]u8, min_memory_size)
+    arena: clay.Arena = clay.CreateArenaWithCapacityAndMemory(min_memory_size, memory)
     clay.Initialize(arena, {cast(f32)size.width, cast(f32)size.width}, {handler = errorHandler})
-    clay.SetMeasureTextFunction(measureText, 0)
+    clay.SetMeasureTextFunction(measure_text, 0)
 
     out_stream := os.stream_from_handle(os.stdout)
     defer io.destroy(out_stream)
@@ -317,7 +317,7 @@ main :: proc() {
             mouse_pressed := false
             for evt in evts {
                 #partial switch e in evt {
-                case events.MouseEvent:
+                case events.Mouse_Event:
                     if e.m == .ScrollDown {
                         scroll_amount -= 0.1
                     } else if e.m == .ScrollUp {
@@ -341,7 +341,7 @@ main :: proc() {
         }
 
         render_commands: clay.ClayArray(clay.RenderCommand) = createLayout()
-        clayTuiRender(&ren, &render_commands)
+        clay_tui_render(&ren, &render_commands)
 
         fps_str := fmt.tprint(fps)
         renderer.render_text(&ren, {size.width - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)
@@ -361,12 +361,12 @@ main :: proc() {
             frames_counter_value = 0
             frames_counter_delta = 0
 
-            // log_filename := fmt.tprintf("./logs/%v.json", time.tick_now())
-            // w_err := os.write_entire_file_or_err(log_filename, transmute([]u8)clayCommandTPrint(&render_commands))
-            // if w_err != nil {
-            //     fmt.eprintfln("Unable to write file(%v): %v", log_filename, w_err)
-            //     os.exit(1)
-            // }
+            log_filename := fmt.tprintf("./logs/%v.json", time.tick_now())
+            w_err := os.write_entire_file_or_err(log_filename, transmute([]u8)clay_command_tprint(&render_commands))
+            if w_err != nil {
+                fmt.eprintfln("Unable to write file(%v): %v", log_filename, w_err)
+                os.exit(1)
+            }
         } else {
             frames_counter_value += 1
         }

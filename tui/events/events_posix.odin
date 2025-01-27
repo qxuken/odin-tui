@@ -55,14 +55,14 @@ process_input :: proc(buf: []u8, allocator := context.temp_allocator) -> []Event
     return res[:]
 }
 
-parse_sgr_mouse :: proc(s: string, allocator := context.temp_allocator) -> (evt: MouseEvent, ok: bool) {
+parse_sgr_mouse :: proc(s: string, allocator := context.temp_allocator) -> (evt: Mouse_Event, ok: bool) {
     parts := strings.split(s, ";", allocator = allocator)
     if len(parts) != 3 {
         return
     }
-    mouse_event_type := cast(MouseEventType)strconv.atoi(parts[0])
+    mouse_event_type := cast(Mouse_Event_Type)strconv.atoi(parts[0])
     if parts[2][len(parts[2]) - 1] == 'm' {
         mouse_event_type = .Release
     }
-    return MouseEvent{mouse_event_type, strconv.atoi(parts[1]), strconv.atoi(parts[2])}, true
+    return Mouse_Event{mouse_event_type, strconv.atoi(parts[1]), strconv.atoi(parts[2])}, true
 }

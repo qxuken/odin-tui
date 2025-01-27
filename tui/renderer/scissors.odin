@@ -1,6 +1,6 @@
 package renderer
 
-start_scissors :: proc(renderer: ^Renderer, bounds: InsertAt) {
+start_scissors :: proc(renderer: ^Renderer, bounds: Insert_At) {
     renderer.scissors = bounds
 }
 
@@ -8,7 +8,7 @@ end_scissors :: proc(renderer: ^Renderer) {
     renderer.scissors = nil
 }
 
-scissor_bound_indicies :: #force_inline proc(renderer: ^Renderer, insert: InsertAt) -> (row_start, row_end, col_start, col_end: int) {
+scissor_bound_indicies :: #force_inline proc(renderer: ^Renderer, insert: Insert_At) -> (row_start, row_end, col_start, col_end: int) {
     row_start = insert.y
     col_start = insert.x
     row_end = insert.y + insert.height

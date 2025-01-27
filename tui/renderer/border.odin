@@ -26,12 +26,12 @@ BordersWidth :: struct {
     left:   int,
 }
 
-render_border :: proc(renderer: ^Renderer, insert: InsertAt, width: BordersWidth, bg: Color = SimpleColor.Default, style: Maybe(Style) = nil) {
+render_border :: proc(renderer: ^Renderer, insert: Insert_At, width: BordersWidth, bg: Color = Simple_Color.Default, style: Maybe(Style) = nil) {
     if insert.width <= 0 || insert.height <= 0 {
         return
     }
     row_start, row_end, col_start, col_end := scissor_bound_indicies(renderer, insert)
-    cell := Cell{SimpleColor.Default, bg, style, nil}
+    cell := Cell{Simple_Color.Default, bg, style, nil}
 
     if insert.width == 1 {
         for row in row_start ..= row_end {

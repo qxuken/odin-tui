@@ -5,27 +5,68 @@ import "core:mem/virtual"
 import "core:unicode/utf8"
 import "tui:utils"
 
+Wrap_Mode :: enum {
+    Word,
+    Line,
+    None,
+}
+
 // TODO: Propper word splits
-wrap_text :: proc(text: string, bounds: Bounds, allocator: runtime.Allocator) -> []rune {
-    res := make([dynamic]rune, bounds.x * bounds.y, allocator = allocator)
-    runes := utf8.string_to_runes(text, allocator)
-    row := 0
-    col := 0
-    for r, i in text {
-        if (i > 0 && i % bounds.x == 0) || r == '\n' {
-            row += 1
-            col = 0
+wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocator: runtime.Allocator) -> []rune {
+    runes_count := bounds.x * bounds.y
+    res := make([dynamic]rune, runes_count, allocator = allocator)
+    switch mode {
+    case .None:
+        for r, i in text {
+            if i >= bounds.x || i >= runes_count {
+                break
+            }
+            res[i] = r
         }
-        ri := utils.tranform_2d_index(bounds.x, row, col)
-        res[ri] = r == '\n' ? ' ' : r
-        col += 1
+    case .Line:
+        row := 0
+        col := 0
+
+        for r, i in text {
+            if r == '\n' {
+                row += 1
+                col = 0
+                continue
+            }
+            if col >= bounds.x {
+                continue
+            }
+            ri := utils.tranform_2d_index(bounds.x, row, col)
+            if ri >= runes_count {
+                break
+            }
+            res[ri] = r
+            col += 1
+        }
+    case .Word:
+        row := 0
+        col := 0
+        word_start := -1
+        for r, i in text {
+            if (i > 0 && i % bounds.x == 0) || r == '\n' {
+                row += 1
+                col = 0
+                continue
+            }
+            ri := utils.tranform_2d_index(bounds.x, row, col)
+            if ri >= runes_count {
+                break
+            }
+            res[ri] = r
+            col += 1
+        }
     }
     return res[:]
 }
 
-render_text :: proc(renderer: ^Renderer, insert: InsertAt, text: string, fg: Maybe(Color) = nil, bg: Maybe(Color) = nil, style: Maybe(Style) = nil) {
+render_text :: proc(renderer: ^Renderer, insert: Insert_At, text: string, mode := Wrap_Mode.Word, fg: Maybe(Color) = nil, bg: Maybe(Color) = nil, style: Maybe(Style) = nil) {
     arena_allocator := virtual.arena_allocator(&renderer.arena)
-    wrapped := wrap_text(text, {insert.width, insert.height}, arena_allocator)
+    wrapped := wrap_text(text, {insert.width, insert.height}, mode, allocator = arena_allocator)
 
     row_start, row_end, col_start, col_end := scissor_bound_indicies(renderer, insert)
 

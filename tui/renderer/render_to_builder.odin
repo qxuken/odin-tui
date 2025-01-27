@@ -14,7 +14,7 @@ render_to_builder :: proc(renderer: ^Renderer, out: ^strings.Builder) {
 
     for cell, i in renderer.state {
         if contigues_len > 0 && i % renderer.bounds.x == 0 {
-            if c_bg != SimpleColor.Default || c_fg != SimpleColor.Default || c_style != nil {
+            if c_bg != Simple_Color.Default || c_fg != Simple_Color.Default || c_style != nil {
                 gap := strings.repeat(" ", contigues_len, arena_allocator)
                 strings.write_string(out, gap)
             }
@@ -49,14 +49,14 @@ render_to_builder :: proc(renderer: ^Renderer, out: ^strings.Builder) {
             c_style = cell.style
         }
 
-        if v, ok := cell.data.(TextData); ok {
+        if v, ok := cell.data.(Text_Data); ok {
             strings.write_rune(out, v.value)
         } else {
             strings.write_rune(out, ' ')
         }
     }
 
-    if contigues_len > 0 && (c_bg != SimpleColor.Default || c_fg != SimpleColor.Default || c_style != nil) {
+    if contigues_len > 0 && (c_bg != Simple_Color.Default || c_fg != Simple_Color.Default || c_style != nil) {
         gap := strings.repeat(" ", contigues_len, arena_allocator)
         strings.write_string(out, gap)
     }

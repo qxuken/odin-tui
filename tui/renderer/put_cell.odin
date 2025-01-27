@@ -27,7 +27,7 @@ put_text_cell :: proc(r: ^Renderer, row, col: int, data: rune, fg: Maybe(Color) 
         cell.style = v
     }
     if data != 0 {
-        cell.data = TextData{data}
+        cell.data = Text_Data{data}
     }
     return true
 }
