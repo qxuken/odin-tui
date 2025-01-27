@@ -3,6 +3,7 @@ package renderer
 import "core:unicode/utf8"
 import "tui:utils"
 
+// https://gitlab.com/christosangel/c-squares/-/blob/main/c-squares.c?ref_type=heads
 TOP_LEFT_BORDER :: '┌'
 TOP_LEFT_BORDER_ROUNDED :: '╭'
 
