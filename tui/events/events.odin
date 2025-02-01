@@ -11,9 +11,18 @@ import "core:sys/windows"
 import "core:time"
 import "core:unicode/utf8"
 
+DEBUG_EVENTS :: #config(DEBUG_EVENTS, false)
+
 // TODO: Add states and unify windows and posix
-Key :: struct {
-    val: rune,
+when DEBUG_EVENTS {
+    Key :: struct {
+        val: rune,
+        raw: string,
+    }
+} else {
+    Key :: struct {
+        val: rune,
+    }
 }
 
 // TODO: Simplify types to clicked or not

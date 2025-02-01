@@ -47,7 +47,11 @@ process_input :: proc(buf: []u8, allocator := context.temp_allocator) -> []Event
             evt := parse_sgr_mouse(p[2:], allocator) or_continue
             append(&res, evt)
         case len(p) > 0:
-            append(&res, Key{utf8.rune_at(p, 0)})
+            when DEBUG_EVENTS {
+                append(&res, Key{utf8.rune_at(p, 0), strings.clone(s)})
+            } else {
+                append(&res, Key{utf8.rune_at(p, 0)})
+            }
         case true:
             append(&res, Unknown{})
         }

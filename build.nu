@@ -8,7 +8,8 @@ export def run-example [
   --out           (-O): string                               # Output for the build
   --exec          (-e)                                       # Should be executed after the build
   --release       (-r)                                       # Build relese
-  --flags         (-F): string                               # Additional flags
+  --flags         (-F): list<string>                         # Additional flags
+  --defines       (-d): list<string>                         # Define boolean flags
   --lint          (-l)                                       # Enable vet flag
   --optimizations (-o): string@optimizations                 # Sets the optimization mode for compilation.
 ] {
@@ -58,6 +59,11 @@ export def run-example [
     $args
   }
   let args = $args | append (nopen ./collections.json | each { |c| $"-collection:($c.name)=($c.path | path expand)" })
+  let args = if not ($defines | is-empty) {
+    $args | append ($defines | each { |d| $"-define:($d)=true"})
+  } else {
+    $args
+  }
   let args = if not ($flags | is-empty) {
     $args | append $flags
   } else {
