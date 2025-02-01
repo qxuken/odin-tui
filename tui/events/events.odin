@@ -14,15 +14,9 @@ import "core:unicode/utf8"
 DEBUG_EVENTS :: #config(DEBUG_EVENTS, false)
 
 // TODO: Add states and unify windows and posix
-when DEBUG_EVENTS {
-    Key :: struct {
-        val: rune,
-        raw: string,
-    }
-} else {
-    Key :: struct {
-        val: rune,
-    }
+Key :: struct {
+    val: rune,
+    raw: string,
 }
 
 // TODO: Simplify types to clicked or not
@@ -42,12 +36,15 @@ Mouse_Event_Type :: enum {
 }
 
 Mouse_Event :: struct {
-    m: Mouse_Event_Type,
-    x: int,
-    y: int,
+    m:   Mouse_Event_Type,
+    x:   int,
+    y:   int,
+    raw: string,
 }
 
-Unknown :: struct {}
+Unknown :: struct {
+    raw: string,
+}
 
 Event :: union #no_nil {
     Unknown,

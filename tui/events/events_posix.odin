@@ -37,24 +37,34 @@ process_input :: proc(buf: []u8, allocator := context.temp_allocator) -> []Event
     res := make([dynamic]Event, allocator = allocator)
     s := strings.clone_from_bytes(buf[:], allocator = allocator)
 
+    when DEBUG_EVENTS {
+        original_data := strings.clone(s)
+    }
     for p in strings.split_iterator(&s, "\x1B") {
         if len(p) == 0 {
             continue
         }
 
+        event: Event = Unknown{}
         switch {
         case len(p) > 6 && p[0] == '[' && p[1] == '<':
-            evt := parse_sgr_mouse(p[2:], allocator) or_continue
-            append(&res, evt)
+            event = parse_sgr_mouse(p[2:], allocator) or_continue
         case len(p) > 0:
-            when DEBUG_EVENTS {
-                append(&res, Key{utf8.rune_at(p, 0), strings.clone(s)})
-            } else {
-                append(&res, Key{utf8.rune_at(p, 0)})
-            }
-        case true:
-            append(&res, Unknown{})
+            event = Key{utf8.rune_at(p, 0), ""}
         }
+
+        when DEBUG_EVENTS {
+            switch &e in event {
+            case Unknown:
+                e.raw = original_data
+            case Mouse_Event:
+                e.raw = original_data
+            case Key:
+                e.raw = original_data
+            }
+        }
+
+        append(&res, event)
     }
     return res[:]
 }
@@ -68,5 +78,5 @@ parse_sgr_mouse :: proc(s: string, allocator := context.temp_allocator) -> (evt:
     if parts[2][len(parts[2]) - 1] == 'm' {
         mouse_event_type = .Release
     }
-    return Mouse_Event{mouse_event_type, strconv.atoi(parts[1]), strconv.atoi(parts[2])}, true
+    return Mouse_Event{mouse_event_type, strconv.atoi(parts[1]), strconv.atoi(parts[2]), ""}, true
 }

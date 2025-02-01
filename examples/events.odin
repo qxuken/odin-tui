@@ -63,7 +63,21 @@ main :: proc() {
     frames_counter_value := 0
     frames_counter_delta: time.Duration
     history := make([dynamic]events.Event, 0, 1024)
-    defer delete(history)
+    defer {
+        when events.DEBUG_EVENTS {
+            for event_raw in history {
+                switch e in event_raw {
+                case events.Unknown:
+                    delete(e.raw)
+                case events.Mouse_Event:
+                    delete(e.raw)
+                case events.Key:
+                    delete(e.raw)
+                }
+            }
+        }
+        delete(history)
+    }
     for {
         defer free_all(context.temp_allocator)
         size := sys.get_size()
@@ -72,13 +86,27 @@ main :: proc() {
         evts, ok := events.poll_event()
         if ok {
             for evt in evts {
+                inject_at_elems(&history, 0, evt)
+            }
+            for evt in evts {
                 if v, ok := evt.(events.Key); ok && unicode.to_lower(v.val) == 'q' {
                     return
                 }
-                inject_at_elems(&history, 0, evt)
             }
         }
         if len(history) > 256 {
+            when events.DEBUG_EVENTS {
+                for i in 256 ..< len(history) {
+                    switch e in history[i] {
+                    case events.Unknown:
+                        delete(e.raw)
+                    case events.Mouse_Event:
+                        delete(e.raw)
+                    case events.Key:
+                        delete(e.raw)
+                    }
+                }
+            }
             resize(&history, 256)
         }
 

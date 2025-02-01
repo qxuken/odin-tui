@@ -1,3 +1,5 @@
+https://en.wikipedia.org/wiki/ANSI_escape_code
+
 colors for terminal: https://github.com/hrszpuk/odin-color/blob/main/color.odin
 
 https://rosettacode.org/wiki/Terminal_control/Dimensions#Library:_BSD_libc
