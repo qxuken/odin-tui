@@ -1,5 +1,6 @@
 ToDo:
-- [ ] Word wrapping algorithm
+- [ ] Word wrapping algorithm with graphemes
+- [ ] ASCII border renderer
 - [ ] Clay basic example
 - [ ] Clay website example
 - [ ] Cross platform\terminal events reading
