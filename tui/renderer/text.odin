@@ -5,29 +5,44 @@ import "core:mem/virtual"
 import "core:unicode/utf8"
 import "tui:utils"
 
+TAB_SIZE :: #config(TAB_SIZE, 4)
+
 Wrap_Mode :: enum {
     Word,
     Line,
     None,
 }
 
-// TODO: Propper word splits
 wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocator: runtime.Allocator) -> []rune {
     runes_count := bounds.x * bounds.y
     res := make([dynamic]rune, runes_count, allocator = allocator)
+
     switch mode {
     case .None:
-        for r, i in text {
+        i := 0
+        for r in text {
             if i >= bounds.x || i >= runes_count {
                 break
             }
-            res[i] = r
+            switch r {
+            case '\n':
+                res[i] = ' '
+                i += 1
+            case '\t':
+                for ti in i ..< min(i + TAB_SIZE, runes_count) {
+                    res[ti] = ' '
+                }
+                i += TAB_SIZE - 1
+            case:
+                res[i] = r
+                i += 1
+            }
         }
     case .Line:
         row := 0
         col := 0
 
-        for r, i in text {
+        line_loop: for r, i in text {
             if r == '\n' {
                 row += 1
                 col = 0
@@ -36,12 +51,24 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
             if col >= bounds.x {
                 continue
             }
-            ri := utils.tranform_2d_index(bounds.x, row, col)
-            if ri >= runes_count {
-                break
+            switch r {
+            case '\t':
+                for lcol in col ..< min(col + TAB_SIZE, bounds.x) {
+                    ti := utils.tranform_2d_index(bounds.x, row, lcol)
+                    if ti >= runes_count {
+                        break line_loop
+                    }
+                    res[ti] = ' '
+                }
+                col += TAB_SIZE - 1
+            case:
+                ri := utils.tranform_2d_index(bounds.x, row, col)
+                if ri >= runes_count {
+                    break
+                }
+                res[ri] = r
+                col += 1
             }
-            res[ri] = r
-            col += 1
         }
     case .Word:
         row := 0

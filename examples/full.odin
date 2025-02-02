@@ -75,13 +75,13 @@ main :: proc() {
                 }
             }
         }
-        renderer.render_text(&ren, {0, 0, 16, 1}, "Enter something:", fg = .BrightGreen, bg = .Red, style = .Blinking)
+        renderer.render_text(&ren, {2, 2, 16, 1}, "Enter something:", fg = .BrightGreen, bg = .Red, style = .Blinking)
         size_str := fmt.tprint(size)
-        renderer.render_text(&ren, {2, 2, len(size_str), 1}, size_str, fg = .Black, bg = .White, style = .Bold)
+        renderer.render_text(&ren, {2, 3, len(size_str), 1}, size_str, fg = .Black, bg = .White, style = .Bold)
         renderer.render_border(&ren, {2, 4, 6, 4}, {1, 1, 1, 1}, .Magenta)
         renderer.render_border(&ren, {10, 4, 8, 3}, {1, 1, 1, 1}, .Magenta)
         renderer.render_box(&ren, {11, 5, 7, 2}, .BrightYellow)
-        renderer.render_box(&ren, {1, 10, 6, 6}, .BrightYellow)
+        renderer.render_box(&ren, {2, 10, 6, 6}, .BrightYellow)
         renderer.render_border(&ren, {19, 9, 11, 8}, {2, 4, 2, 2}, .Magenta)
         renderer.render_box(&ren, {21, 10, 6, 6}, .BrightYellow)
         renderer.render_box(&ren, {23, 11, 6, 6}, .Red)
@@ -89,6 +89,23 @@ main :: proc() {
         renderer.render_text(&ren, {19, 14, 8, 2}, "Sample Text", fg = renderer.RBG_Color{42, 42, 42}, style = .Inverse)
         // renderer.render_box(&ren, {24, 12, 6, 3}, .Cyan)
         renderer.render_text(&ren, {21, 12, 6, 1}, "Text", fg = renderer.RBG_Color{69, 69, 69}, style = .Italic)
+        renderer.render_text(&ren, {19, 14, 8, 2}, "Sample Text", fg = renderer.RBG_Color{42, 42, 42}, style = .Inverse)
+
+        renderer.render_text(&ren, {3, 17, min(5, size.width - 3), 1}, "👪")
+        renderer.render_text(&ren, {8, 17, min(5, size.width - 3), 1}, "👨‍👩‍👦")
+        renderer.render_text(&ren, {3, 18, min(5, size.width - 3), 1}, "👨\u200D👩\u200D👧")
+        family_emoji := [?]rune{0x1F468, 0x200D, 0x1F469, 0x200D, 0x1F467}
+        renderer.render_text(&ren, {3, 19, min(5, size.width - 3), 1}, utf8.runes_to_string(family_emoji[:], context.temp_allocator))
+
+        renderer.render_text(&ren, {3, 21, min(41, size.width - 3), 1}, "No wrap text.\nAfter newline.\t After Tab", mode = .None, fg = .White, bg = .Magenta)
+        renderer.render_text(&ren, {3, 22, min(27, size.width - 3), 2}, "Wrap Line.\nAfter newline.\t After Tab", mode = .Line, fg = .Yellow, bg = .Red)
+        renderer.render_text(&ren, {3, 24, 11, 10}, "Wrap Words.\nAfter newline.\t After Tab.\nElevenletterword Elevenlette", mode = .Word, fg = .White, bg = .Blue)
+
+        for row in 0 ..= 50 {
+            row_str := fmt.tprint(row)
+            renderer.render_text(&ren, {0, row, len(row_str), 1}, row_str, fg = .White, style = .Dim)
+            renderer.render_text(&ren, {row, 0, 1, len(row_str)}, row_str, fg = .White, style = .Dim)
+        }
 
         fps_str := fmt.tprint(fps)
         renderer.render_text(&ren, {size.width - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)
