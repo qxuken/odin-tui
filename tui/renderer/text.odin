@@ -21,7 +21,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
     case .None:
         i := 0
         for r in text {
-            if i >= bounds.x || i >= runes_count {
+            if i >= min(bounds.x, runes_count) {
                 break
             }
             switch r {
@@ -38,10 +38,10 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                 i += 1
             }
         }
+
     case .Line:
         row := 0
         col := 0
-
         line_loop: for r, i in text {
             if r == '\n' {
                 row += 1
@@ -70,61 +70,105 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                 col += 1
             }
         }
+
     case .Word:
         row := 0
         col := 0
         word_start := -1
+        // graphemes, graphemes_count, rune_count, width := utf8.decode_grapheme_clusters(text, allocator = allocator)
         word_loop: for r, i in text {
-            if (r == ' ' || r == '\n' || r == '\t') {
-                if word_start > 0 {
-                    word_len := i - word_start
-                    remaining_len := bounds.x - col
-                    if word_len > remaining_len && word_len <= bounds.x {
-                        row += 1
-                        col = 0
-                    }
-                    for wi in word_start ..< i {
-                        if wi > 0 && wi % bounds.x == 0 {
-                            row += 1
-                            col = 0
-                        }
-                        ri := utils.tranform_2d_index(bounds.x, row, col)
-                        if ri >= runes_count {
-                            break word_loop
-                        }
-                        res[ri] = r
-                        col += 1
-                    }
-                    word_start = -1
-                } else {
-                    if i > 0 && i % bounds.x == 0 {
-                        row += 1
-                        col = 0
-                    }
-                    ri := utils.tranform_2d_index(bounds.x, row, col)
-                    if ri >= runes_count {
+            space_symbol := r == ' ' || r == '\n' || r == '\t'
+            switch {
+            case !space_symbol && word_start == -1:
+                word_start = i
+            case space_symbol && word_start != -1:
+                word_len := i - word_start
+                if word_len <= bounds.x && word_len > bounds.x - col {
+                    row += 1
+                    col = 0
+                }
+                for li in word_start ..< i {
+                    ti := utils.tranform_2d_index(bounds.x, row, col)
+                    if ti >= runes_count {
                         break word_loop
                     }
-                    res[ri] = r
+                    res[ti] = utf8.rune_at(text, li)
+                    if li + 1 != i && col + 1 >= bounds.x {
+                        if bounds.x > 1 {
+                            ti := utils.tranform_2d_index(bounds.x, row, col)
+                            if ti >= runes_count {
+                                break
+                            }
+                            res[ti] = '-'
+                        }
+                        row += 1
+                        col = 0
+                    } else {
+                        col += 1
+                    }
+                }
+                word_start = -1
+                fallthrough
+            case space_symbol && word_start == -1:
+                switch r {
+                case '\n':
+                    row += 1
+                    col = 0
+                case '\t':
+                    for _ in 0 ..< TAB_SIZE {
+                        if col >= bounds.x {
+                            break
+                        }
+                        ti := utils.tranform_2d_index(bounds.x, row, col)
+                        if ti >= runes_count {
+                            break word_loop
+                        }
+                        res[ti] = ' '
+                        col += 1
+                    }
+                case ' ':
+                    if col >= bounds.x {
+                        row += 1
+                        col = 0
+                    }
+                    ti := utils.tranform_2d_index(bounds.x, row, col)
+                    if ti >= runes_count {
+                        break word_loop
+                    }
+                    res[ti] = ' '
                     col += 1
                 }
-            } else if word_start == -1 {
-                word_start = i
             }
         }
-        for r, i in text[word_start:] {
-            if i > 0 && i % bounds.x == 0 {
+        if word_start != -1 {
+            word_len := len(text) - word_start
+            if word_len <= bounds.x && word_len > bounds.x - col {
                 row += 1
                 col = 0
             }
-            ri := utils.tranform_2d_index(bounds.x, row, col)
-            if ri >= runes_count {
-                break
+            for li in word_start ..< len(text) {
+                ti := utils.tranform_2d_index(bounds.x, row, col)
+                if ti >= runes_count {
+                    break
+                }
+                res[ti] = utf8.rune_at(text, li)
+                if li + 1 != len(text) && col + 1 >= bounds.x {
+                    if bounds.x > 1 {
+                        ti := utils.tranform_2d_index(bounds.x, row, col)
+                        if ti >= runes_count {
+                            break
+                        }
+                        res[ti] = '-'
+                    }
+                    row += 1
+                    col = 0
+                } else {
+                    col += 1
+                }
             }
-            res[ri] = r
-            col += 1
         }
     }
+
     return res[:]
 }
 
