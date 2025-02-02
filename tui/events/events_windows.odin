@@ -38,18 +38,35 @@ _poll_event :: proc(allocator := context.temp_allocator) -> ([]Event, bool) {
 process_input :: proc(buf: []windows.INPUT_RECORD, allocator := context.temp_allocator) -> []Event {
     res := make([dynamic]Event, allocator = allocator)
 
-    for evt in buf {
-        switch evt.EventType {
-        case .KEY_EVENT:
-            {
-                evt := evt.Event.KeyEvent
-                append(&res, Key{rune(evt.wVirtualKeyCode)})
+    when DEBUG_EVENTS {
+        builder := strings.builder_make(context.allocator)
+        for evt in buf {
+            switch evt.EventType {
+            case .KEY_EVENT:
+                strings.write_string(&builder, fmt.tprint(evt.Event.KeyEvent))
+            case .MOUSE_EVENT:
+                strings.write_string(&builder, fmt.tprint(evt.Event.MouseEvent))
+            case .WINDOW_BUFFER_SIZE_EVENT:
+                strings.write_string(&builder, fmt.tprint(evt.Event.WindowBufferSizeEvent))
+            case .MENU_EVENT:
+                strings.write_string(&builder, fmt.tprint(evt.Event.MenuEvent))
+            case .FOCUS_EVENT:
+                strings.write_string(&builder, fmt.tprint(evt.Event.FocusEvent))
             }
+        }
+        original_data := strings.to_string(builder)
+    }
+
+    for evt in buf {
+        event: Event = Unknown{""}
+        #partial switch evt.EventType {
+        case .KEY_EVENT:
+            evt := evt.Event.KeyEvent
+            event = Key{rune(evt.wVirtualKeyCode), ""}
         case .MOUSE_EVENT:
             evt := evt.Event.MouseEvent
             coord := evt.dwMousePosition
             state: Mouse_Event_Type
-
             switch evt.dwButtonState {
             case 0:
                 state = .Move
@@ -63,15 +80,21 @@ process_input :: proc(buf: []windows.INPUT_RECORD, allocator := context.temp_all
                 state = .ScrollUp
             case 4286578688:
                 state = .ScrollDown
-
             }
-            append(&res, Mouse_Event{state, cast(int)coord.X, cast(int)coord.Y})
-        case .FOCUS_EVENT:
-        case .MENU_EVENT:
-        case .WINDOW_BUFFER_SIZE_EVENT:
-            append(&res, Unknown{})
+            event = Mouse_Event{state, cast(int)coord.X, cast(int)coord.Y, ""}
         }
-
+        when DEBUG_EVENTS {
+            switch &e in event {
+            case Unknown:
+                e.raw = original_data
+            case Mouse_Event:
+                e.raw = original_data
+            case Key:
+                e.raw = original_data
+            }
+        }
+        append(&res, event)
     }
+
     return res[:]
 }
