@@ -97,9 +97,10 @@ main :: proc() {
         family_emoji := [?]rune{0x1F468, 0x200D, 0x1F469, 0x200D, 0x1F467}
         renderer.render_text(&ren, {3, 19, min(5, size.width - 3), 1}, utf8.runes_to_string(family_emoji[:], context.temp_allocator))
 
-        renderer.render_text(&ren, {3, 21, min(41, size.width - 3), 1}, "No wrap text.\nAfter newline.\t After Tab", mode = .None, fg = .White, bg = .Magenta)
-        renderer.render_text(&ren, {3, 22, min(27, size.width - 3), 2}, "Wrap Line.\nAfter newline.\t After Tab", mode = .Line, fg = .Yellow, bg = .Red)
-        renderer.render_text(&ren, {3, 24, 11, 10}, "Wrap Words.\nAfter newline.\t After Tab.\nElevenletterword Elevenlette", mode = .Word, fg = .White, bg = .Blue)
+        renderer.render_text(&ren, {3, 21, min(41, size.width - 3), 1}, "No wrap text.\nAfter newline.\tAfter Tab", mode = .None, fg = .White, bg = .Magenta)
+        renderer.render_text(&ren, {3, 22, min(27, size.width - 3), 2}, "Wrap Line.\nAfter newline.\tAfter Tab", mode = .Line, fg = .Yellow, bg = .Red)
+        renderer.render_text(&ren, {3, 24, 11, 10}, "Wrap Words.\nAfter newline.\tAfter Tab.\nElevenletterword Elevenlette", mode = .Word, fg = .White, bg = .Blue)
+        renderer.render_text(&ren, {17, 24, 20, 10}, "Wrap Words.\nAfter newline.\tAfter Tab.\nElevenletterword Elevenlette", mode = .Word, fg = .White, bg = .Blue)
 
         for row in 0 ..= 50 {
             row_str := fmt.tprint(row)

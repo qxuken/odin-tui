@@ -5,7 +5,15 @@ import "core:mem/virtual"
 import "core:unicode/utf8"
 import "tui:utils"
 
-TAB_SIZE :: #config(TAB_SIZE, 4)
+DEBUG_TEXT_RENDERING :: #config(DEBUG_TEXT_RENDERING, false)
+TAB_SIZE :: 4
+when DEBUG_TEXT_RENDERING {
+    TAB_CHAR :: '»'
+    NEW_LINE_CHAR :: ''
+} else {
+    TAB_CHAR :: ' '
+    NEW_LINE_CHAR :: ' '
+}
 
 Wrap_Mode :: enum {
     Word,
@@ -26,13 +34,13 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
             }
             switch r {
             case '\n':
-                res[i] = ' '
+                res[i] = NEW_LINE_CHAR
                 i += 1
             case '\t':
                 for ti in i ..< min(i + TAB_SIZE, runes_count) {
-                    res[ti] = ' '
+                    res[ti] = TAB_CHAR
                 }
-                i += TAB_SIZE - 1
+                i += TAB_SIZE
             case:
                 res[i] = r
                 i += 1
@@ -44,6 +52,13 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
         col := 0
         line_loop: for r, i in text {
             if r == '\n' {
+                if col < bounds.x {
+                    ti := utils.tranform_2d_index(bounds.x, row, col)
+                    if ti >= runes_count {
+                        break line_loop
+                    }
+                    res[ti] = NEW_LINE_CHAR
+                }
                 row += 1
                 col = 0
                 continue
@@ -58,9 +73,9 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                     if ti >= runes_count {
                         break line_loop
                     }
-                    res[ti] = ' '
+                    res[ti] = TAB_CHAR
                 }
-                col += TAB_SIZE - 1
+                col += TAB_SIZE
             case:
                 ri := utils.tranform_2d_index(bounds.x, row, col)
                 if ri >= runes_count {
@@ -112,6 +127,13 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
             case space_symbol && word_start == -1:
                 switch r {
                 case '\n':
+                    if col < bounds.x {
+                        ti := utils.tranform_2d_index(bounds.x, row, col)
+                        if ti >= runes_count {
+                            break word_loop
+                        }
+                        res[ti] = NEW_LINE_CHAR
+                    }
                     row += 1
                     col = 0
                 case '\t':
@@ -123,7 +145,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                         if ti >= runes_count {
                             break word_loop
                         }
-                        res[ti] = ' '
+                        res[ti] = TAB_CHAR
                         col += 1
                     }
                 case ' ':
