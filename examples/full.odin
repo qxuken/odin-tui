@@ -91,11 +91,11 @@ main :: proc() {
         renderer.render_text(&ren, {21, 12, 6, 1}, "Text", fg = renderer.RBG_Color{69, 69, 69}, style = .Italic)
         renderer.render_text(&ren, {19, 14, 8, 2}, "Sample Text", fg = renderer.RBG_Color{42, 42, 42}, style = .Inverse)
 
-        renderer.render_text(&ren, {3, 17, min(5, size.width - 3), 1}, "👪")
-        renderer.render_text(&ren, {8, 17, min(5, size.width - 3), 1}, "👨‍👩‍👦")
-        renderer.render_text(&ren, {3, 18, min(5, size.width - 3), 1}, "👨\u200D👩\u200D👧")
+        renderer.render_text(&ren, {3, 17, min(5, size.width - 3), 1}, "👪", mode = .None)
+        renderer.render_text(&ren, {8, 17, min(5, size.width - 3), 1}, "👨‍👩‍👦", mode = .None)
+        renderer.render_text(&ren, {3, 18, min(5, size.width - 3), 1}, "👨\u200D👩\u200D👧", mode = .None)
         family_emoji := [?]rune{0x1F468, 0x200D, 0x1F469, 0x200D, 0x1F467}
-        renderer.render_text(&ren, {3, 19, min(5, size.width - 3), 1}, utf8.runes_to_string(family_emoji[:], context.temp_allocator))
+        renderer.render_text(&ren, {3, 19, min(5, size.width - 3), 1}, utf8.runes_to_string(family_emoji[:], context.temp_allocator), mode = .None)
 
         renderer.render_text(&ren, {3, 21, min(41, size.width - 3), 1}, "No wrap text.\nAfter newline.\tAfter Tab", mode = .None, fg = .White, bg = .Magenta)
         renderer.render_text(&ren, {3, 22, min(27, size.width - 3), 2}, "Wrap Line.\nAfter newline.\tAfter Tab", mode = .Line, fg = .Yellow, bg = .Red)

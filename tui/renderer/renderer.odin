@@ -14,9 +14,14 @@ Insert_At :: struct {
 Ascii_Border_Data :: struct {
     rounded: bool,
 }
+
+Grapheme_Value :: []u8
+Text_Data_Value :: union #no_nil {
+    rune,
+    Grapheme_Value,
+}
 Text_Data :: struct {
-    // TODO: add []u8 variant for graphemes
-    value: rune,
+    value: Text_Data_Value,
 }
 Cell_Data :: union {
     Ascii_Border_Data,

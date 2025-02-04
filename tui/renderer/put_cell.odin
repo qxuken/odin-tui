@@ -11,7 +11,7 @@ put_cell :: proc(r: ^Renderer, row, col: int, cell: Cell) -> bool {
     return true
 }
 
-put_text_cell :: proc(r: ^Renderer, row, col: int, data: rune, fg: Maybe(Color) = nil, bg: Maybe(Color) = nil, style: Maybe(Style) = nil) -> bool {
+put_text_cell :: proc(r: ^Renderer, row, col: int, data: Text_Data_Value, fg: Maybe(Color) = nil, bg: Maybe(Color) = nil, style: Maybe(Style) = nil) -> bool {
     i := utils.tranform_2d_index(r.bounds.x, row, col)
     if 0 > i || i >= len(r.state) {
         return false
@@ -26,7 +26,12 @@ put_text_cell :: proc(r: ^Renderer, row, col: int, data: rune, fg: Maybe(Color) 
     if v, ok := style.?; ok {
         cell.style = v
     }
-    if data != 0 {
+    switch v in data {
+    case rune:
+        if v != 0 {
+            cell.data = Text_Data{data}
+        }
+    case Grapheme_Value:
         cell.data = Text_Data{data}
     }
     return true

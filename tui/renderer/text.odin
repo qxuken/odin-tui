@@ -1,6 +1,7 @@
 package renderer
 
 import "base:runtime"
+import "core:fmt"
 import "core:mem/virtual"
 import "core:unicode/utf8"
 import "tui:utils"
@@ -21,29 +22,40 @@ Wrap_Mode :: enum {
     None,
 }
 
-wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocator: runtime.Allocator) -> []rune {
-    runes_count := bounds.x * bounds.y
-    res := make([dynamic]rune, runes_count, allocator = allocator)
+wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocator: runtime.Allocator) -> []Text_Data_Value {
+    cells_count := bounds.x * bounds.y
+    res := make([dynamic]Text_Data_Value, cells_count, allocator = allocator)
 
+    graphemes, graphemes_count, rune_count, width := utf8.decode_grapheme_clusters(text, allocator = allocator)
     switch mode {
     case .None:
         i := 0
-        for r in text {
-            if i >= min(bounds.x, runes_count) {
+        for grapheme in graphemes {
+            if i >= min(bounds.x, cells_count) {
                 break
             }
-            switch r {
-            case '\n':
-                res[i] = NEW_LINE_CHAR
+            switch grapheme.width {
+            case 2 ..< max(int):
+                res[i] = transmute([]u8)text[grapheme.byte_index:][:grapheme.width]
                 i += 1
-            case '\t':
-                for ti in i ..< min(i + TAB_SIZE, runes_count) {
-                    res[ti] = TAB_CHAR
+            case 0:
+            case 1:
+                r := cast(rune)text[grapheme.byte_index]
+                switch r {
+                case '\n':
+                    res[i] = NEW_LINE_CHAR
+                    i += 1
+                case '\t':
+                    for ti in i ..< min(i + TAB_SIZE, cells_count) {
+                        res[ti] = TAB_CHAR
+                    }
+                    i += TAB_SIZE
+                case:
+                    res[i] = r
+                    i += 1
                 }
-                i += TAB_SIZE
-            case:
-                res[i] = r
-                i += 1
+            case min(int) ..< 0:
+                fmt.panicf("Grapheme error(#%v):%v", i, grapheme)
             }
         }
 
@@ -54,7 +66,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
             if r == '\n' {
                 if col < bounds.x {
                     ti := utils.tranform_2d_index(bounds.x, row, col)
-                    if ti >= runes_count {
+                    if ti >= cells_count {
                         break line_loop
                     }
                     res[ti] = NEW_LINE_CHAR
@@ -70,7 +82,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
             case '\t':
                 for lcol in col ..< min(col + TAB_SIZE, bounds.x) {
                     ti := utils.tranform_2d_index(bounds.x, row, lcol)
-                    if ti >= runes_count {
+                    if ti >= cells_count {
                         break line_loop
                     }
                     res[ti] = TAB_CHAR
@@ -78,7 +90,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                 col += TAB_SIZE
             case:
                 ri := utils.tranform_2d_index(bounds.x, row, col)
-                if ri >= runes_count {
+                if ri >= cells_count {
                     break
                 }
                 res[ri] = r
@@ -90,7 +102,6 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
         row := 0
         col := 0
         word_start := -1
-        // graphemes, graphemes_count, rune_count, width := utf8.decode_grapheme_clusters(text, allocator = allocator)
         word_loop: for r, i in text {
             space_symbol := r == ' ' || r == '\n' || r == '\t'
             switch {
@@ -104,14 +115,14 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                 }
                 for li in word_start ..< i {
                     ti := utils.tranform_2d_index(bounds.x, row, col)
-                    if ti >= runes_count {
+                    if ti >= cells_count {
                         break word_loop
                     }
                     res[ti] = utf8.rune_at(text, li)
                     if li + 1 != i && col + 1 >= bounds.x {
                         if bounds.x > 1 {
                             ti := utils.tranform_2d_index(bounds.x, row, col)
-                            if ti >= runes_count {
+                            if ti >= cells_count {
                                 break
                             }
                             res[ti] = '-'
@@ -129,7 +140,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                 case '\n':
                     if col < bounds.x {
                         ti := utils.tranform_2d_index(bounds.x, row, col)
-                        if ti >= runes_count {
+                        if ti >= cells_count {
                             break word_loop
                         }
                         res[ti] = NEW_LINE_CHAR
@@ -142,7 +153,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                             break
                         }
                         ti := utils.tranform_2d_index(bounds.x, row, col)
-                        if ti >= runes_count {
+                        if ti >= cells_count {
                             break word_loop
                         }
                         res[ti] = TAB_CHAR
@@ -154,7 +165,7 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
                         col = 0
                     }
                     ti := utils.tranform_2d_index(bounds.x, row, col)
-                    if ti >= runes_count {
+                    if ti >= cells_count {
                         break word_loop
                     }
                     res[ti] = ' '
@@ -170,14 +181,14 @@ wrap_text :: proc(text: string, bounds: Bounds, mode := Wrap_Mode.Word, allocato
             }
             for li in word_start ..< len(text) {
                 ti := utils.tranform_2d_index(bounds.x, row, col)
-                if ti >= runes_count {
+                if ti >= cells_count {
                     break
                 }
                 res[ti] = utf8.rune_at(text, li)
                 if li + 1 != len(text) && col + 1 >= bounds.x {
                     if bounds.x > 1 {
                         ti := utils.tranform_2d_index(bounds.x, row, col)
-                        if ti >= runes_count {
+                        if ti >= cells_count {
                             break
                         }
                         res[ti] = '-'

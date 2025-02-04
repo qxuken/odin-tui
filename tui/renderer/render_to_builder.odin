@@ -50,7 +50,12 @@ render_to_builder :: proc(renderer: ^Renderer, out: ^strings.Builder) {
         }
 
         if v, ok := cell.data.(Text_Data); ok {
-            strings.write_rune(out, v.value)
+            switch text_value in v.value {
+            case rune:
+                strings.write_rune(out, text_value)
+            case Grapheme_Value:
+                strings.write_bytes(out, text_value)
+            }
         } else {
             strings.write_rune(out, ' ')
         }
