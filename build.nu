@@ -58,7 +58,7 @@ export def run-example [
   } else {
     $args
   }
-  let args = $args | append (nopen ./collections.json | each { |c| $"-collection:($c.name)=($c.path | path expand)" })
+  let args = $args | append (open ./collections.json | each { |c| $"-collection:($c.name)=($c.path | path expand)" })
   let args = if not ($defines | is-empty) {
     $args | append ($defines | each { |d| $"-define:($d)=true"})
   } else {

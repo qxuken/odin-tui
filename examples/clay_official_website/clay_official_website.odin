@@ -349,10 +349,12 @@ main :: proc() {
 
         arena_allocator := virtual.arena_allocator(&ren.arena)
         out_builder := strings.builder_make(arena_allocator)
+        sys.start_sync_update(&out_builder)
         sys.clear_screen(&out_builder)
         renderer.render_to_builder(&ren, &out_builder)
-        rendered := strings.to_string(out_builder)
-        io.write_string(out_stream, rendered)
+        sys.end_sync_update(&out_builder)
+
+        io.write_string(out_stream, strings.to_string(out_builder))
         io.flush(out_stream)
 
         delta_time := time.tick_since(frame_time)

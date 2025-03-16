@@ -62,3 +62,11 @@ clear_screen :: proc(out: ^strings.Builder) {
     strings.write_string(out, csi + "2J") // clear screen
     strings.write_string(out, csi + "H") // move to home (row=1, col=1)
 }
+
+start_sync_update :: proc(out: ^strings.Builder) {
+    strings.write_string(out, csi + "?2026h")
+}
+
+end_sync_update :: proc(out: ^strings.Builder) {
+    strings.write_string(out, csi + "?2026l")
+}
