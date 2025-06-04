@@ -276,9 +276,9 @@ main :: proc() {
     sys.enable_mouse_capture()
     sys.enter_alternate_mode()
     sys.hide_cursor()
-    defer sys.restore_terminal()
-    defer sys.exit_alternate_mode()
     defer sys.show_cursor()
+    defer sys.exit_alternate_mode()
+    defer sys.restore_terminal()
 
     size := sys.get_size()
 
