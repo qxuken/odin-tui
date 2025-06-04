@@ -15,24 +15,23 @@ export def run-example [
 ] {
   let distro = (sys host | get name)
 
-  let args = []
+  mut args = []
 
-  let args = if $exec {
-    $args | append "run"
+  let cmd = if $exec {
+     "run"
   } else {
-    $args | append "build"
+    "build"
   }
+  $args = $args | append $cmd
 
   let full_entry_path = $entry_dir | path join $entry
-  let args = $args | append $full_entry_path
-  let args = if ($full_entry_path | path type) == "file" {
-    $args | append "-file"
-  } else {
-    $args
+  $args = $args | append $full_entry_path
+  if ($full_entry_path | path type) == "file" {
+    $args = $args | append "-file"
   }
 
-  let args = if not ($out | is-empty) {
-    $args | append $"-out:($out)"
+  if not ($out | is-empty) {
+    $args = $args | append $"-out:($out)"
   } else {
     mkdir "build"
     let name = if not ($bin_name | is-empty) {
@@ -45,29 +44,21 @@ export def run-example [
       _ => ".bin",
     }
     let path = $"./build/($name)($file_ext)" | path expand
-    $args | append $"-out:($path)"
+    $args = $args | append $"-out:($path)"
   }
   
-  let args = if $release {
-    $args
-  } else {
-    $args | append "-debug"
+  if not $release {
+    $args = $args | append "-debug"
   }
-  let args = if $lint {
-    $args | append "-vet"
-  } else {
-    $args
+  if $lint {
+    $args = $args | append "-vet"
   }
-  let args = $args | append (open ./collections.json | each { |c| $"-collection:($c.name)=($c.path | path expand)" })
-  let args = if not ($defines | is-empty) {
-    $args | append ($defines | each { |d| $"-define:($d)=true"})
-  } else {
-    $args
+  $args = $args | append (open ./collections.json | each { |c| $"-collection:($c.name)=($c.path | path expand)" })
+  if not ($defines | is-empty) {
+    $args = $args | append ($defines | each { |d| $"-define:($d)=true"})
   }
-  let args = if not ($flags | is-empty) {
-    $args | append $flags
-  } else {
-    $args
+  if not ($flags | is-empty) {
+    $args = $args | append $flags
   }
 
   run-external odin ...$args
