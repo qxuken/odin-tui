@@ -1,4 +1,4 @@
-package term
+package term_sys
 
 import "core:sys/linux"
 

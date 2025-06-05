@@ -1,5 +1,5 @@
 #+build darwin, linux
-package term
+package term_sys
 
 import "core:c/libc"
 import "core:fmt"

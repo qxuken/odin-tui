@@ -12,8 +12,7 @@ import "core:time"
 import "core:unicode"
 import "tui:events"
 import "tui:renderer"
-import "tui:sys"
-import "tui:widgets"
+import "tui:term_sys"
 
 TARGET_FPS :: 60
 SAVE_RENDER_LOGS :: #config(SAVE_RENDER_LOGS, false)
@@ -271,16 +270,16 @@ errorHandler :: proc "c" (errorData: clay.ErrorData) {
 }
 
 main :: proc() {
-    sys.set_utf8_terminal()
-    sys.enable_raw_mode()
-    sys.enable_mouse_capture()
-    sys.enter_alternate_mode()
-    sys.hide_cursor()
-    defer sys.show_cursor()
-    defer sys.exit_alternate_mode()
-    defer sys.restore_terminal()
+    term_sys.set_utf8_terminal()
+    term_sys.enable_raw_mode()
+    term_sys.enable_mouse_capture()
+    term_sys.enter_alternate_mode()
+    term_sys.hide_cursor()
+    defer term_sys.show_cursor()
+    defer term_sys.exit_alternate_mode()
+    defer term_sys.restore_terminal()
 
-    size := sys.get_size()
+    size := term_sys.get_size()
 
     min_memory_size: u32 = clay.MinMemorySize()
     memory := make([^]u8, min_memory_size)
@@ -304,7 +303,7 @@ main :: proc() {
     for {
         defer free_all(context.temp_allocator)
 
-        size := sys.get_size()
+        size := term_sys.get_size()
         window_width = size.width
         window_height = size.height
 
@@ -349,10 +348,10 @@ main :: proc() {
 
         arena_allocator := virtual.arena_allocator(&ren.arena)
         out_builder := strings.builder_make(arena_allocator)
-        sys.start_sync_update(&out_builder)
-        sys.clear_screen(&out_builder)
+        term_sys.start_sync_update(&out_builder)
+        term_sys.clear_screen(&out_builder)
         renderer.render_to_builder(&ren, &out_builder)
-        sys.end_sync_update(&out_builder)
+        term_sys.end_sync_update(&out_builder)
 
         io.write_string(out_stream, strings.to_string(out_builder))
         io.flush(out_stream)

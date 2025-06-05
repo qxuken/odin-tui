@@ -1,4 +1,4 @@
-package term
+package term_sys
 
 import "base:intrinsics"
 import "core:c"

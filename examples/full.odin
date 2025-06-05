@@ -14,8 +14,7 @@ import "core:unicode"
 import "core:unicode/utf8"
 import "tui:events"
 import "tui:renderer"
-import "tui:sys"
-import "tui:widgets"
+import "tui:term_sys"
 
 TARGET_FPS :: 60
 
@@ -42,14 +41,14 @@ main :: proc() {
         }
     }
 
-    sys.set_utf8_terminal()
-    sys.enable_raw_mode()
-    sys.enable_mouse_capture()
-    sys.enter_alternate_mode()
-    sys.hide_cursor()
-    defer sys.restore_terminal()
-    defer sys.exit_alternate_mode()
-    defer sys.show_cursor()
+    term_sys.set_utf8_terminal()
+    term_sys.enable_raw_mode()
+    term_sys.enable_mouse_capture()
+    term_sys.enter_alternate_mode()
+    term_sys.hide_cursor()
+    defer term_sys.restore_terminal()
+    defer term_sys.exit_alternate_mode()
+    defer term_sys.show_cursor()
 
     out_stream := os.stream_from_handle(os.stdout)
     defer io.destroy(out_stream)
@@ -64,7 +63,7 @@ main :: proc() {
     frames_counter_delta: time.Duration
     for {
         defer free_all(context.temp_allocator)
-        size := sys.get_size()
+        size := term_sys.get_size()
         renderer.clean_renderer_cycle(&ren, {size.width, size.height})
 
         evts, ok := events.poll_event()
@@ -113,10 +112,10 @@ main :: proc() {
 
         arena_allocator := virtual.arena_allocator(&ren.arena)
         out_builder := strings.builder_make(arena_allocator)
-        sys.start_sync_update(&out_builder)
-        sys.clear_screen(&out_builder)
+        term_sys.start_sync_update(&out_builder)
+        term_sys.clear_screen(&out_builder)
         renderer.render_to_builder(&ren, &out_builder)
-        sys.end_sync_update(&out_builder)
+        term_sys.end_sync_update(&out_builder)
 
         io.write_string(out_stream, strings.to_string(out_builder))
         io.flush(out_stream)

@@ -1,6 +1,6 @@
 package renderer
 import "core:fmt"
-import "tui:sys"
+import "core:terminal/ansi"
 
 // https://en.wikipedia.org/wiki/ANSI_escape_code
 
@@ -42,7 +42,7 @@ Style :: enum {
 }
 
 reset_code :: proc() -> string {
-    return sys.csi + "0m"
+    return ansi.CSI + ansi.RESET + ansi.SGR
 }
 
 fg_color_code :: proc(color: Color, allocator := context.temp_allocator) -> string {
@@ -66,49 +66,49 @@ bg_color_code :: proc(color: Color, allocator := context.temp_allocator) -> stri
 }
 
 fg_rbg_code :: proc(color: RBG_Color, allocator := context.temp_allocator) -> string {
-    return fmt.aprintf(sys.csi + "38;2;%v;%v;%vm", color.r, color.g, color.b, allocator = allocator)
+    return fmt.aprintf(ansi.CSI + ansi.FG_COLOR_24_BIT + ";%v;%v;%v" + ansi.SGR, color.r, color.g, color.b, allocator = allocator)
 }
 
 bg_rbg_code :: proc(color: RBG_Color, allocator := context.temp_allocator) -> string {
-    return fmt.aprintf(sys.csi + "48;2;%v;%v;%vm", color.r, color.g, color.b, allocator = allocator)
+    return fmt.aprintf(ansi.CSI + ansi.BG_COLOR_24_BIT + ";%v;%v;%v" + ansi.SGR, color.r, color.g, color.b, allocator = allocator)
 }
 
 fg_simple_color_code :: proc(color: Simple_Color) -> string {
     switch color {
     case .Default:
-        return sys.csi + "39m"
+        return ansi.CSI + ansi.FG_DEFAULT + ansi.SGR
     case .Black:
-        return sys.csi + "30m"
+        return ansi.CSI + ansi.FG_BLACK + ansi.SGR
     case .Red:
-        return sys.csi + "31m"
+        return ansi.CSI + ansi.FG_RED + ansi.SGR
     case .Green:
-        return sys.csi + "32m"
+        return ansi.CSI + ansi.FG_GREEN + ansi.SGR
     case .Yellow:
-        return sys.csi + "33m"
+        return ansi.CSI + ansi.FG_YELLOW + ansi.SGR
     case .Blue:
-        return sys.csi + "34m"
+        return ansi.CSI + ansi.FG_BLUE + ansi.SGR
     case .Magenta:
-        return sys.csi + "35m"
+        return ansi.CSI + ansi.FG_MAGENTA + ansi.SGR
     case .Cyan:
-        return sys.csi + "36m"
+        return ansi.CSI + ansi.FG_CYAN + ansi.SGR
     case .White:
-        return sys.csi + "37m"
+        return ansi.CSI + ansi.FG_WHITE + ansi.SGR
     case .BrightBlack:
-        return sys.csi + "90m"
+        return ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR
     case .BrightRed:
-        return sys.csi + "91m"
+        return ansi.CSI + ansi.FG_BRIGHT_RED + ansi.SGR
     case .BrightGreen:
-        return sys.csi + "92m"
+        return ansi.CSI + ansi.FG_BRIGHT_GREEN + ansi.SGR
     case .BrightYellow:
-        return sys.csi + "93m"
+        return ansi.CSI + ansi.FG_BRIGHT_YELLOW + ansi.SGR
     case .BrightBlue:
-        return sys.csi + "94m"
+        return ansi.CSI + ansi.FG_BRIGHT_BLUE + ansi.SGR
     case .BrightMagenta:
-        return sys.csi + "95m"
+        return ansi.CSI + ansi.FG_BRIGHT_MAGENTA + ansi.SGR
     case .BrightCyan:
-        return sys.csi + "96m"
+        return ansi.CSI + ansi.FG_BRIGHT_CYAN + ansi.SGR
     case .BrightWhite:
-        return sys.csi + "97m"
+        return ansi.CSI + ansi.FG_BRIGHT_WHITE + ansi.SGR
     }
     unreachable()
 }
@@ -116,39 +116,39 @@ fg_simple_color_code :: proc(color: Simple_Color) -> string {
 bg_simple_color_code :: proc(color: Simple_Color, bright := false) -> string {
     switch color {
     case .Default:
-        return sys.csi + "49m"
+        return ansi.CSI + ansi.BG_DEFAULT + ansi.SGR
     case .Black:
-        return sys.csi + "40m"
+        return ansi.CSI + ansi.BG_BLACK + ansi.SGR
     case .Red:
-        return sys.csi + "41m"
+        return ansi.CSI + ansi.BG_RED + ansi.SGR
     case .Green:
-        return sys.csi + "42m"
+        return ansi.CSI + ansi.BG_GREEN + ansi.SGR
     case .Yellow:
-        return sys.csi + "43m"
+        return ansi.CSI + ansi.BG_YELLOW + ansi.SGR
     case .Blue:
-        return sys.csi + "44m"
+        return ansi.CSI + ansi.BG_BLUE + ansi.SGR
     case .Magenta:
-        return sys.csi + "45m"
+        return ansi.CSI + ansi.BG_MAGENTA + ansi.SGR
     case .Cyan:
-        return sys.csi + "46m"
+        return ansi.CSI + ansi.BG_CYAN + ansi.SGR
     case .White:
-        return sys.csi + "47m"
+        return ansi.CSI + ansi.BG_WHITE + ansi.SGR
     case .BrightBlack:
-        return sys.csi + "100m"
+        return ansi.CSI + ansi.BG_BRIGHT_BLACK + ansi.SGR
     case .BrightRed:
-        return sys.csi + "101m"
+        return ansi.CSI + ansi.BG_BRIGHT_RED + ansi.SGR
     case .BrightGreen:
-        return sys.csi + "102m"
+        return ansi.CSI + ansi.BG_BRIGHT_GREEN + ansi.SGR
     case .BrightYellow:
-        return sys.csi + "103m"
+        return ansi.CSI + ansi.BG_BRIGHT_YELLOW + ansi.SGR
     case .BrightBlue:
-        return sys.csi + "104m"
+        return ansi.CSI + ansi.BG_BRIGHT_BLUE + ansi.SGR
     case .BrightMagenta:
-        return sys.csi + "105m"
+        return ansi.CSI + ansi.BG_BRIGHT_MAGENTA + ansi.SGR
     case .BrightCyan:
-        return sys.csi + "106m"
+        return ansi.CSI + ansi.BG_BRIGHT_CYAN + ansi.SGR
     case .BrightWhite:
-        return sys.csi + "107m"
+        return ansi.CSI + ansi.BG_BRIGHT_WHITE + ansi.SGR
     }
     unreachable()
 }
@@ -156,19 +156,19 @@ bg_simple_color_code :: proc(color: Simple_Color, bright := false) -> string {
 start_style_code :: proc(style: Style) -> string {
     switch style {
     case .Bold:
-        return sys.csi + "1m"
+        return ansi.CSI + ansi.BOLD + ansi.SGR
     case .Dim:
-        return sys.csi + "2m"
+        return ansi.CSI + ansi.FAINT + ansi.SGR
     case .Italic:
-        return sys.csi + "3m"
+        return ansi.CSI + ansi.ITALIC + ansi.SGR
     case .Underline:
-        return sys.csi + "4m"
+        return ansi.CSI + ansi.UNDERLINE + ansi.SGR
     case .Blinking:
-        return sys.csi + "5m"
+        return ansi.CSI + ansi.BLINK_SLOW + ansi.SGR
     case .Inverse:
-        return sys.csi + "7m"
+        return ansi.CSI + ansi.INVERT + ansi.SGR
     case .Strikethrough:
-        return sys.csi + "9m"
+        return ansi.CSI + ansi.STRIKE + ansi.SGR
     }
     unreachable()
 }
@@ -176,19 +176,19 @@ start_style_code :: proc(style: Style) -> string {
 end_style_code :: proc(style: Style) -> string {
     switch style {
     case .Bold:
-        return sys.csi + "22m"
+        return ansi.CSI + ansi.NO_BOLD_FAINT + ansi.SGR
     case .Dim:
-        return sys.csi + "22m"
+        return ansi.CSI + ansi.NO_BOLD_FAINT + ansi.SGR
     case .Italic:
-        return sys.csi + "23m"
+        return ansi.CSI + ansi.NO_ITALIC_BLACKLETTER + ansi.SGR
     case .Underline:
-        return sys.csi + "24m"
+        return ansi.CSI + ansi.NO_UNDERLINE + ansi.SGR
     case .Blinking:
-        return sys.csi + "25m"
+        return ansi.CSI + ansi.NO_BLINK + ansi.SGR
     case .Inverse:
-        return sys.csi + "27m"
+        return ansi.CSI + ansi.NO_REVERSE + ansi.SGR
     case .Strikethrough:
-        return sys.csi + "200m"
+        return ansi.CSI + ansi.NO_STRIKE + ansi.SGR
     }
     unreachable()
 }
