@@ -28,9 +28,6 @@ _enable_raw_mode :: proc() {
     ok := windows.GetConsoleMode(stdin, &orig_mode)
     ensure(ok == true)
 
-    // Reset to the original attributes at the end of the program.
-    libc.atexit(restore_terminal)
-
     raw := orig_mode
     raw &= ~windows.ENABLE_ECHO_INPUT
     raw &= ~windows.ENABLE_LINE_INPUT
@@ -54,6 +51,11 @@ _enable_mouse_capture :: proc() {
     mode |= ENABLE_EXTENDED_FLAGS
     ok := windows.SetConsoleMode(stdin, mode)
     ensure(ok == true)
+}
+
+_hook_restore_terminal :: proc "c" () {
+    // Reset to the original attributes at the end of the program.
+    libc.atexit(restore_terminal)
 }
 
 _restore_terminal :: proc "c" () {

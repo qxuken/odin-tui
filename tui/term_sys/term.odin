@@ -44,6 +44,10 @@ hide_cursor :: proc() {
     fmt.print(CSI_HIDE_CURSOR)
 }
 
+hook_restore_terminal :: proc "c" () {
+    _hook_restore_terminal()
+}
+
 restore_terminal :: proc "c" () {
     _restore_terminal()
 }
