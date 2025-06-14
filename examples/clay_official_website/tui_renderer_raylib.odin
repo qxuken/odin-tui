@@ -10,7 +10,7 @@ clay_color_into_tui_color :: proc(color: clay.Color) -> renderer.RBG_Color {
     return renderer.RBG_Color{cast(int)color.r, cast(int)color.g, cast(int)color.b}
 }
 
-measure_text :: proc "c" (text: clay.StringSlice, config: ^clay.TextElementConfig, userData: uintptr) -> clay.Dimensions {
+measure_text :: proc "c" (text: clay.StringSlice, config: ^clay.TextElementConfig, userData: rawptr) -> clay.Dimensions {
     wrap_mode := config.wrapMode
     // Measure string size for Font
     text_size: clay.Dimensions = {0, 1}
@@ -32,37 +32,38 @@ measure_text :: proc "c" (text: clay.StringSlice, config: ^clay.TextElementConfi
     return text_size
 }
 
-clay_tui_render :: proc(r: ^renderer.Renderer, renderCommands: ^clay.ClayArray(clay.RenderCommand)) {
-    for i in 0 ..< int(renderCommands.length) {
-        renderCommand := clay.RenderCommandArray_Get(renderCommands, cast(i32)i)
-        boundingBox := renderer.Insert_At {
-            cast(int)math.round(renderCommand.boundingBox.x),
-            cast(int)math.round(renderCommand.boundingBox.y),
-            cast(int)math.round(renderCommand.boundingBox.width),
-            cast(int)math.round(renderCommand.boundingBox.height),
+clay_tui_render :: proc(r: ^renderer.Renderer, render_commands: ^clay.ClayArray(clay.RenderCommand)) {
+    for i in 0 ..< int(render_commands.length) {
+        render_command := clay.RenderCommandArray_Get(render_commands, cast(i32)i)
+        bounding_box := renderer.Insert_At {
+            cast(int)math.round(render_command.boundingBox.x),
+            cast(int)math.round(render_command.boundingBox.y),
+            cast(int)math.round(render_command.boundingBox.width),
+            cast(int)math.round(render_command.boundingBox.height),
         }
-        switch (renderCommand.commandType) {
-        case clay.RenderCommandType.Text:
-            text := string(renderCommand.text.chars[:renderCommand.text.length])
-            renderer.render_text(r, boundingBox, text, fg = clay_color_into_tui_color(renderCommand.config.textElementConfig.textColor))
-        case clay.RenderCommandType.Rectangle:
-            config: ^clay.RectangleElementConfig = renderCommand.config.rectangleElementConfig
-            renderer.render_box(r, boundingBox, bg = clay_color_into_tui_color(config.color))
-        case clay.RenderCommandType.Border:
-            config := renderCommand.config.borderElementConfig
+        switch render_command.commandType {
+        case .Text:
+            config := render_command.renderData.text
+            text := string(config.stringContents.chars[:config.stringContents.length])
+            renderer.render_text(r, bounding_box, text, fg = clay_color_into_tui_color(config.textColor))
+        case .Rectangle:
+            config := render_command.renderData.rectangle
+            renderer.render_box(r, bounding_box, bg = clay_color_into_tui_color(config.backgroundColor))
+        case .Border:
+            config := render_command.renderData.border
             renderer.render_border(
                 r,
-                boundingBox,
-                {cast(int)config.top.width, cast(int)config.right.width, cast(int)config.bottom.width, cast(int)config.left.width},
-                bg = clay_color_into_tui_color(config.left.color),
+                bounding_box,
+                {cast(int)config.width.top, cast(int)config.width.right, cast(int)config.width.bottom, cast(int)config.width.left},
+                bg = clay_color_into_tui_color(config.color),
             )
-        case clay.RenderCommandType.ScissorStart:
-            renderer.start_scissors(r, boundingBox)
-        case clay.RenderCommandType.ScissorEnd:
+        case .ScissorStart:
+            renderer.start_scissors(r, bounding_box)
+        case .ScissorEnd:
             renderer.end_scissors(r)
-        case clay.RenderCommandType.Image:
-        case clay.RenderCommandType.None:
-        case clay.RenderCommandType.Custom:
+        case .Image:
+        case .None:
+        case .Custom:
             {}
         }
     }
@@ -74,25 +75,25 @@ clay_command_tprint :: proc(render_commands: ^clay.ClayArray(clay.RenderCommand)
         command := clay.RenderCommandArray_Get(render_commands, cast(i32)i)
         strings.write_string(&out, fmt.tprintfln("%#v", command^))
         switch (command.commandType) {
-        case clay.RenderCommandType.Text:
-            config: ^clay.TextElementConfig = command.config.textElementConfig
-            strings.write_string(&out, fmt.tprintfln("text: %v", config^))
-            strings.write_string(&out, fmt.tprintfln("text_content: %v", string(command.text.chars[:command.text.length])))
-        case clay.RenderCommandType.Rectangle:
-            config: ^clay.RectangleElementConfig = command.config.rectangleElementConfig
-            strings.write_string(&out, fmt.tprintfln("rectangle: %v", config^))
-        case clay.RenderCommandType.Border:
-            config := command.config.borderElementConfig
-            strings.write_string(&out, fmt.tprintfln("text: %v", config^))
-        case clay.RenderCommandType.ScissorStart:
+        case .Text:
+            config := command.renderData.text
+            strings.write_string(&out, fmt.tprintfln("text: %v", config))
+            strings.write_string(&out, fmt.tprintfln("text_content: %v", string(config.stringContents.chars[:config.stringContents.length])))
+        case .Rectangle:
+            config := command.renderData.rectangle
+            strings.write_string(&out, fmt.tprintfln("rectangle: %v", config))
+        case .Border:
+            config := command.renderData.border
+            strings.write_string(&out, fmt.tprintfln("text: %v", config))
+        case .ScissorStart:
             strings.write_string(&out, fmt.tprintfln("ScissorStart"))
-        case clay.RenderCommandType.ScissorEnd:
+        case .ScissorEnd:
             strings.write_string(&out, fmt.tprintfln("ScissorEnd"))
-        case clay.RenderCommandType.Image:
+        case .Image:
             strings.write_string(&out, fmt.tprintfln("Image"))
-        case clay.RenderCommandType.None:
+        case .None:
             strings.write_string(&out, fmt.tprintfln("None"))
-        case clay.RenderCommandType.Custom:
+        case .Custom:
             strings.write_string(&out, fmt.tprintfln("Custom"))
         }
     }
