@@ -2,22 +2,22 @@ def optimizations [] { ["none", "minimal", "size", "speed", "aggresive"] }
 def examples [] { ls --short-names ./examples | each { |e| $e.name } }
 
 export def run-example [
-  --entry_dir     (-D): string          = "examples"         # Base folder
-  --entry         (-E): string@examples = "full.odin"        # Entry for the build
-  --bin_name      (-n): string                               # Name of the binary that will be generated
-  --out           (-O): string                               # Output for the build
-  --exec          (-e)                                       # Should be executed after the build
-  --release       (-r)                                       # Build relese
-  --flags         (-F): list<string>                         # Additional flags
-  --defines       (-d): list<string>                         # Define boolean flags
-  --lint          (-l)                                       # Enable vet flag
-  --optimizations (-o): string@optimizations                 # Sets the optimization mode for compilation.
+    entry: string@examples     = "full.odin" # Entry for the build
+  --entry-dir     (-D): string = "examples"  # Base folder
+  --bin-name      (-n): string               # Name of the binary that will be generated
+  --out           (-O): string               # Output for the build
+  --run           (-r)                       # Should be executed after the build
+  --flags         (-F): list<string>         # Additional flags
+  --defines       (-d): list<string>         # Define boolean flags
+  --lint          (-l)                       # Enable vet flag
+  --optimizations (-o): string@optimizations # Sets the optimization mode for compilation.
+  --release                                  # Build relese
 ] {
   let distro = (sys host | get name)
 
   mut args = []
 
-  let cmd = if $exec {
+  let cmd = if $run {
      "run"
   } else {
     "build"
