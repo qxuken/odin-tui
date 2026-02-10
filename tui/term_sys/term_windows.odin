@@ -1,7 +1,6 @@
 package term_sys
 
 import "core:c/libc"
-import "core:fmt"
 import "core:sys/windows"
 
 @(private = "file")
@@ -69,14 +68,22 @@ _restore_terminal :: proc "c" () {
     windows.SetConsoleMode(stdin, orig_mode)
 }
 
-_get_size :: proc() -> Window_Size {
+_get_size :: proc() -> Maybe(Window_Size) {
     // Get a handle to the standard output.
-    stdout := windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
-    ensure(stdout != windows.INVALID_HANDLE_VALUE)
+    handle := windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
+    if handle == nil || handle == windows.INVALID_HANDLE_VALUE {
+        return nil
+    }
 
     ci: windows.CONSOLE_SCREEN_BUFFER_INFO
-    ok := windows.GetConsoleScreenBufferInfo(stdout, &ci)
-    ensure(ok == true, "GetConsoleScreenBufferInfo != ok")
+    if !windows.GetConsoleScreenBufferInfo(stdout, &ci) {
+        return nil
+    }
 
-    return {cast(int)(ci.dwSize.X), cast(int)(ci.dwSize.Y)}
+    return Window_Size {
+        row = cast(int)ci.dwSize.Y,
+        col = cast(int)ci.dwSize.X,
+        xpixel = cast(int)(ci.srWindow.Right - ci.srWindow.Left),
+        ypixel = cast(int)(ci.srWindow.Bottom - ci.srWindow.Top),
+    }
 }

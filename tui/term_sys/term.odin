@@ -5,8 +5,10 @@ import "core:strings"
 import "core:terminal/ansi"
 
 Window_Size :: struct {
-    width:  int,
-    height: int,
+    row:    int,
+    col:    int,
+    xpixel: int,
+    ypixel: int,
 }
 
 set_utf8_terminal :: proc() {
@@ -52,7 +54,7 @@ restore_terminal :: proc "c" () {
     _restore_terminal()
 }
 
-get_size :: proc() -> Window_Size {
+get_size :: proc() -> Maybe(Window_Size) {
     return _get_size()
 }
 

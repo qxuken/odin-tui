@@ -5,10 +5,7 @@ import "core:io"
 import "core:mem"
 import "core:mem/virtual"
 import "core:os"
-import "core:slice"
-import "core:strconv"
 import "core:strings"
-import "core:sys/windows"
 import "core:time"
 import "core:unicode"
 import "core:unicode/utf8"
@@ -63,8 +60,8 @@ main :: proc() {
     frames_counter_delta: time.Duration
     for {
         defer free_all(context.temp_allocator)
-        size := term_sys.get_size()
-        renderer.clean_renderer_cycle(&ren, {size.width, size.height})
+        size: term_sys.Window_Size = term_sys.get_size().(term_sys.Window_Size)
+        renderer.clean_renderer_cycle(&ren, {size.col, size.col})
 
         evts, ok := events.poll_event()
         if ok {
@@ -90,14 +87,14 @@ main :: proc() {
         renderer.render_text(&ren, {21, 12, 6, 1}, "Text", fg = renderer.RBG_Color{69, 69, 69}, style = .Italic)
         renderer.render_text(&ren, {19, 14, 8, 2}, "Sample Text", fg = renderer.RBG_Color{42, 42, 42}, style = .Inverse)
 
-        renderer.render_text(&ren, {3, 17, min(5, size.width - 3), 1}, "👪", mode = .None)
-        renderer.render_text(&ren, {8, 17, min(5, size.width - 3), 1}, "👨‍👩‍👦", mode = .None)
-        renderer.render_text(&ren, {3, 18, min(5, size.width - 3), 1}, "👨\u200D👩\u200D👧", mode = .None)
+        renderer.render_text(&ren, {3, 17, min(5, size.col - 3), 1}, "👪", mode = .None)
+        renderer.render_text(&ren, {8, 17, min(5, size.col - 3), 1}, "👨‍👩‍👦", mode = .None)
+        renderer.render_text(&ren, {3, 18, min(5, size.col - 3), 1}, "👨\u200D👩\u200D👧", mode = .None)
         family_emoji := [?]rune{0x1F468, 0x200D, 0x1F469, 0x200D, 0x1F467}
-        renderer.render_text(&ren, {3, 19, min(5, size.width - 3), 1}, utf8.runes_to_string(family_emoji[:], context.temp_allocator), mode = .None)
+        renderer.render_text(&ren, {3, 19, min(5, size.col - 3), 1}, utf8.runes_to_string(family_emoji[:], context.temp_allocator), mode = .None)
 
-        renderer.render_text(&ren, {3, 21, min(41, size.width - 3), 1}, "No wrap text.\nAfter newline.\tAfter Tab", mode = .None, fg = .White, bg = .Magenta)
-        renderer.render_text(&ren, {3, 22, min(27, size.width - 3), 2}, "Wrap Line.\nAfter newline.\tAfter Tab", mode = .Line, fg = .Yellow, bg = .Red)
+        renderer.render_text(&ren, {3, 21, min(41, size.col - 3), 1}, "No wrap text.\nAfter newline.\tAfter Tab", mode = .None, fg = .White, bg = .Magenta)
+        renderer.render_text(&ren, {3, 22, min(27, size.col - 3), 2}, "Wrap Line.\nAfter newline.\tAfter Tab", mode = .Line, fg = .Yellow, bg = .Red)
         renderer.render_text(&ren, {3, 24, 11, 10}, "Wrap Words.\nAfter newline.\tAfter Tab.\nElevenletterword Elevenlette", mode = .Word, fg = .White, bg = .Blue)
         renderer.render_text(&ren, {17, 24, 20, 10}, "Wrap Words.\nAfter newline.\tAfter Tab.\nElevenletterword Elevenlette", mode = .Word, fg = .White, bg = .Blue)
 
@@ -108,7 +105,7 @@ main :: proc() {
         }
 
         fps_str := fmt.tprint(fps)
-        renderer.render_text(&ren, {size.width - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)
+        renderer.render_text(&ren, {size.col - len(fps_str), 0, len(fps_str), 1}, fps_str, fg = .Green, bg = .Black, style = .Bold)
 
         arena_allocator := virtual.arena_allocator(&ren.arena)
         out_builder := strings.builder_make(arena_allocator)

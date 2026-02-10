@@ -1,7 +1,8 @@
+#+build netbsd, openbsd, freebsd, haiku
 #+private
 package term_sys
 
-import "core:sys/darwin"
+import "core:sys/unix"
 
 winsize :: struct {
     ws_row:    u16,
@@ -10,16 +11,18 @@ winsize :: struct {
     ws_ypixel: u16,
 }
 
+TIOCGWINSZ :: 0x40087468
+
 _get_size :: proc() -> Maybe(Window_Size) {
     // https://rosettacode.org/wiki/Terminal_control/Dimensions#Library:_BSD_libc
-    fd, ok := darwin.sys_open("/dev/tty", {.RDWR}, {})
+    fd, ok := unix.sys_open("/dev/tty", {.RDWR}, {})
     if !ok {
         return nil
     }
-    defer darwin.syscall_close(fd)
+    defer unix.syscall_close(fd)
 
     ws: winsize
-    if darwin.syscall_ioctl(fd, darwin.TIOCGWINSZ, rawptr(&ws)) != 0 {
+    if unix.syscall_ioctl(fd, TIOCGWINSZ, rawptr(&ws)) != 0 {
         return nil
     }
 

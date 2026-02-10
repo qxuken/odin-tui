@@ -1,8 +1,8 @@
+#+private
 package term_sys
 
 import "core:sys/linux"
 
-@(private = "file")
 winsize :: struct {
     ws_row:    u16,
     ws_col:    u16,
@@ -10,16 +10,13 @@ winsize :: struct {
     ws_ypixel: u16,
 }
 
-@(private = "file")
-TIOCGWINSZ :: 0x5413
-
-_get_size :: proc() -> Window_Size {
+_get_size :: proc() -> Maybe(Window_Size) {
     // https://rosettacode.org/wiki/Terminal_control/Dimensions#Library:_BSD_libc
-    ws := new(winsize)
-    defer free(ws)
+    ws: winsize
 
-    ret := linux.ioctl(linux.STDIN_FILENO, TIOCGWINSZ, uintptr(ws))
-    ensure(ret == 0, "ioctl return code non zero")
+    if linux.ioctl(linux.STDIN_FILENO, linux.TIOCGWINSZ, uintptr(&ws)) != 0 {
+        return nil
+    }
 
-    return {cast(int)ws.ws_col, cast(int)ws.ws_row}
+    return Window_Size{row = cast(int)ws.ws_row, col = cast(int)ws.ws_col, xpixel = cast(int)ws.ws_xpixel, ypixel = cast(int)ws.ws_ypixel}
 }

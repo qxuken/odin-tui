@@ -2,7 +2,6 @@
 package term_sys
 
 import "core:c/libc"
-import "core:fmt"
 import psx "core:sys/posix"
 
 @(private = "file")
