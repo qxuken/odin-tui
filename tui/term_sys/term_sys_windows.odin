@@ -20,35 +20,35 @@ _enable_raw_mode :: proc() {
     }
 
     // Get a handle to the standard input.
-    stdin := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-    ensure(stdin != windows.INVALID_HANDLE_VALUE)
+    handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
+    ensure(handle != windows.INVALID_HANDLE_VALUE)
 
     // Get the original terminal mode.
-    ok := windows.GetConsoleMode(stdin, &orig_mode)
+    ok := windows.GetConsoleMode(handle, &orig_mode)
     ensure(ok == true)
 
     raw := orig_mode
     raw &= ~windows.ENABLE_ECHO_INPUT
     raw &= ~windows.ENABLE_LINE_INPUT
-    ok = windows.SetConsoleMode(stdin, raw)
+    ok = windows.SetConsoleMode(handle, raw)
     ensure(ok == true)
 
 }
 
 _enable_mouse_capture :: proc() {
     // Get a handle to the standard input.
-    stdin := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-    ensure(stdin != windows.INVALID_HANDLE_VALUE)
+    handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
+    ensure(handle != windows.INVALID_HANDLE_VALUE)
 
     if orig_mode != max(u32) {
-        ok := windows.GetConsoleMode(stdin, &orig_mode)
+        ok := windows.GetConsoleMode(handle, &orig_mode)
         ensure(ok == true)
     }
 
     mode := windows.ENABLE_MOUSE_INPUT
     mode |= windows.ENABLE_WINDOW_INPUT
     mode |= ENABLE_EXTENDED_FLAGS
-    ok := windows.SetConsoleMode(stdin, mode)
+    ok := windows.SetConsoleMode(handle, mode)
     ensure(ok == true)
 }
 
@@ -62,10 +62,10 @@ _restore_terminal :: proc "c" () {
         return
     }
 
-    stdin := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-    assert_contextless(stdin != windows.INVALID_HANDLE_VALUE)
+    handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
+    assert_contextless(handle != windows.INVALID_HANDLE_VALUE)
 
-    windows.SetConsoleMode(stdin, orig_mode)
+    windows.SetConsoleMode(handle, orig_mode)
 }
 
 _get_size :: proc() -> Maybe(Window_Size) {
@@ -76,7 +76,7 @@ _get_size :: proc() -> Maybe(Window_Size) {
     }
 
     ci: windows.CONSOLE_SCREEN_BUFFER_INFO
-    if !windows.GetConsoleScreenBufferInfo(stdout, &ci) {
+    if !windows.GetConsoleScreenBufferInfo(handle, &ci) {
         return nil
     }
 
