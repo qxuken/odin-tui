@@ -1,20 +1,17 @@
 ToDo:
-- [ ] Word wrapping algorithm with graphemes
-- [ ] ASCII border renderer
-- [ ] Clay basic example
-- [ ] Clay website example
-- [ ] Cross platform\terminal events reading
-- [ ] Fix Linux\MacOS rendering performance
-- [ ] Fix alternate mode enter\raw mode start
-        - now its messing with a terminal and leaves its state after finish, should works something like neovim or lazygit
-- [ ] Non blocking io?
-- [ ] Over SSH Example?
-- [ ] Cleanup code
+- [ ] Kitty keyboard protocol (CSI u) for Shift/Ctrl on plain letters
+- [ ] Frame diffing in the renderer (only send changed cells)
+- [ ] Cursor position / show cursor API for text inputs
+- [ ] Over SSH example?
+- [ ] Verify Windows backend on a real console (only cross-checked with `odin check -target:windows_amd64`)
 
 Done:
 - [x] Basic renderer
-- [x] Simple event reading
-- [x] App initializer
-- [x] Rendering example - for debug
-- [x] Events example - for debug
-- [x] Copy-pasta Clay example - for debug
+- [x] App initializer with guaranteed restore (exit, panic, signals, Ctrl-Z)
+- [x] Blocking event loop with timeout instead of a fixed frame rate
+- [x] Cross platform terminal events (keys with modifiers, SGR mouse, resize, paste, focus)
+- [x] Word wrapping with graphemes and wide characters
+- [x] Box drawing frames
+- [x] Rendering example, events example, minimal example
+- [x] Rendering performance on macOS/Linux (erase-to-eol instead of full clears, direct writes)
+- [x] Alternate mode enter/exit leaves the shell untouched

@@ -1,82 +1,160 @@
-#+build darwin, linux
+#+build darwin, linux, netbsd, openbsd, freebsd
+#+private
 package events
 
 import "base:runtime"
-import "core:fmt"
-import "core:io"
-import "core:os"
-import "core:slice"
-import "core:strconv"
-import "core:strings"
-import "core:sys/windows"
+import "core:c"
+import psx "core:sys/posix"
 import "core:time"
-import "core:unicode/utf8"
+import "tui:term_sys"
 
-in_stream: io.Stream
-in_buf: [128]u8
+// How long a lone ESC may sit in the buffer before it is reported as the
+// Escape key rather than the start of a sequence.
+ESC_TIMEOUT :: 30 * time.Millisecond
 
-_init_event_poller :: proc() {
-    in_stream = os.stream_from_handle(os.stdin)
-}
+@(private = "file")
+parser: Parser
 
-_destroy_event_poller :: proc() {
-    io.destroy(in_stream)
-}
+// Self-pipe: the SIGWINCH handler writes a byte so `poll` wakes up.
+@(private = "file")
+wake_fds: [2]psx.FD = {-1, -1}
 
-_poll_event :: proc(allocator := context.temp_allocator) -> ([]Event, bool) {
-    n, err := io.read(in_stream, in_buf[:])
-    if err != nil {
-        return nil, false
+@(private = "file")
+partial_since: time.Tick
+
+_init :: proc() -> bool {
+    parser.buf = make([dynamic]u8, 0, 256)
+    if psx.pipe(&wake_fds) != .OK {
+        return false
     }
-    evts := process_input(in_buf[:n], allocator)
-    return evts, true
+    for fd in wake_fds {
+        psx.fcntl(fd, .SETFD, psx.FD_CLOEXEC)
+        flags := psx.fcntl(fd, .GETFL)
+        psx.fcntl(fd, .SETFL, flags | psx.O_NONBLOCK)
+    }
+
+    act: psx.sigaction_t
+    act.sa_handler = winch_handler
+    psx.sigemptyset(&act.sa_mask)
+    act.sa_flags = {.RESTART}
+    psx.sigaction(psx.Signal(psx.SIGWINCH), &act, nil)
+    return true
 }
 
+_destroy :: proc() {
+    act: psx.sigaction_t
+    act.sa_handler = cast(proc "c" (psx.Signal))psx.SIG_DFL
+    psx.sigemptyset(&act.sa_mask)
+    psx.sigaction(psx.Signal(psx.SIGWINCH), &act, nil)
 
-process_input :: proc(buf: []u8, allocator := context.temp_allocator) -> []Event {
-    res := make([dynamic]Event, allocator = allocator)
-    s := strings.clone_from_bytes(buf[:], allocator = allocator)
-
-    when DEBUG_EVENTS {
-        original_data := strings.clone(s)
+    for &fd in wake_fds {
+        if fd >= 0 {
+            psx.close(fd)
+            fd = -1
+        }
     }
-    for p in strings.split_iterator(&s, "\x1B") {
-        if len(p) == 0 {
-            continue
+    delete(parser.buf)
+    parser = {}
+}
+
+@(private = "file")
+winch_handler :: proc "c" (_: psx.Signal) {
+    b: u8 = 1
+    psx.write(wake_fds[1], ([^]u8)(&b), 1)
+}
+
+_poll :: proc(timeout: time.Duration, allocator: runtime.Allocator) -> []Event {
+    out := make([dynamic]Event, allocator)
+
+    // Something may be left over from the previous call.
+    drain(&out, false, allocator)
+    if len(out) > 0 {
+        return out[:]
+    }
+
+    start := time.tick_now()
+    for {
+        remaining := timeout
+        if timeout >= 0 {
+            remaining = max(timeout - time.tick_since(start), 0)
         }
 
-        event: Event = Unknown{}
-        switch {
-        case len(p) > 6 && p[0] == '[' && p[1] == '<':
-            event = parse_sgr_mouse(p[2:], allocator) or_continue
-        case len(p) > 0:
-            event = Key{utf8.rune_at(p, 0), ""}
-        }
-
-        when DEBUG_EVENTS {
-            switch &e in event {
-            case Unknown:
-                e.raw = original_data
-            case Mouse_Event:
-                e.raw = original_data
-            case Key:
-                e.raw = original_data
+        // A pending ESC only waits for the escape timeout, not the caller's.
+        wait := remaining
+        if parser_has_partial(&parser) {
+            esc_left := max(ESC_TIMEOUT - time.tick_since(partial_since), 0)
+            if wait < 0 || esc_left < wait {
+                wait = esc_left
             }
         }
 
-        append(&res, event)
+        readable, woken := wait_input(wait)
+        if woken {
+            drain_wake_pipe()
+            size, _ := term_sys.get_size()
+            append(&out, Resize{cols = size.cols, rows = size.rows})
+        }
+        if readable {
+            read_stdin()
+        }
+
+        flush := parser_has_partial(&parser) && time.tick_since(partial_since) >= ESC_TIMEOUT
+        drain(&out, flush, allocator)
+        if len(out) > 0 {
+            return out[:]
+        }
+        if timeout >= 0 && time.tick_since(start) >= timeout {
+            return out[:]
+        }
     }
-    return res[:]
 }
 
-parse_sgr_mouse :: proc(s: string, allocator := context.temp_allocator) -> (evt: Mouse_Event, ok: bool) {
-    parts := strings.split(s, ";", allocator = allocator)
-    if len(parts) != 3 {
+@(private = "file")
+drain :: proc(out: ^[dynamic]Event, flush: bool, allocator: runtime.Allocator) {
+    had_partial := parser_has_partial(&parser)
+    parser_drain(&parser, out, flush, allocator)
+    if parser_has_partial(&parser) && !had_partial {
+        partial_since = time.tick_now()
+    }
+}
+
+@(private = "file")
+wait_input :: proc(timeout: time.Duration) -> (readable, woken: bool) {
+    fds := [2]psx.pollfd{{fd = psx.STDIN_FILENO, events = {.IN}}, {fd = wake_fds[0], events = {.IN}}}
+
+    ms: c.int = -1
+    if timeout >= 0 {
+        // Round up so a 1ns wait does not become a busy loop.
+        whole := (timeout + time.Millisecond - 1) / time.Millisecond
+        ms = c.int(min(whole, time.Duration(max(c.int))))
+    }
+
+    n := psx.poll(raw_data(fds[:]), 2, ms)
+    if n <= 0 {
+        return false, false
+    }
+    readable = fds[0].revents & {.IN, .HUP, .ERR} != {}
+    woken = fds[1].revents & {.IN} != {}
+    return
+}
+
+@(private = "file")
+drain_wake_pipe :: proc() {
+    tmp: [64]u8
+    for psx.read(wake_fds[0], raw_data(tmp[:]), len(tmp)) > 0 {}
+}
+
+@(private = "file")
+read_stdin :: proc() {
+    tmp: [4096]u8
+    for {
+        n := psx.read(psx.STDIN_FILENO, raw_data(tmp[:]), len(tmp))
+        if n < 0 && psx.errno() == .EINTR {
+            continue
+        }
+        if n > 0 {
+            append(&parser.buf, ..tmp[:n])
+        }
         return
     }
-    mouse_event_type := cast(Mouse_Event_Type)strconv.atoi(parts[0])
-    if parts[2][len(parts[2]) - 1] == 'm' {
-        mouse_event_type = .Release
-    }
-    return Mouse_Event{mouse_event_type, strconv.atoi(parts[1]), strconv.atoi(parts[2]), ""}, true
 }
