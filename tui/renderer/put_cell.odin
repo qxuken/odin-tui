@@ -2,21 +2,28 @@ package renderer
 
 import "tui:utils"
 
+@(private)
+cell_at :: #force_inline proc(r: ^Renderer, row, col: int) -> ^Cell {
+    if row < 0 || col < 0 || row >= r.bounds.y || col >= r.bounds.x {
+        return nil
+    }
+    return &r.state[utils.tranform_2d_index(r.bounds.x, row, col)]
+}
+
 put_cell :: proc(r: ^Renderer, row, col: int, cell: Cell) -> bool {
-    i := utils.tranform_2d_index(r.bounds.x, row, col)
-    if 0 > i || i >= len(r.state) {
+    target := cell_at(r, row, col)
+    if target == nil {
         return false
     }
-    r.state[i] = cell
+    target^ = cell
     return true
 }
 
 put_text_cell :: proc(r: ^Renderer, row, col: int, data: Text_Data_Value, fg: Maybe(Color) = nil, bg: Maybe(Color) = nil, style: Maybe(Style) = nil) -> bool {
-    i := utils.tranform_2d_index(r.bounds.x, row, col)
-    if 0 > i || i >= len(r.state) {
+    cell := cell_at(r, row, col)
+    if cell == nil {
         return false
     }
-    cell := &r.state[i]
     if v, ok := fg.?; ok {
         cell.fg = v
     }
@@ -31,7 +38,7 @@ put_text_cell :: proc(r: ^Renderer, row, col: int, data: Text_Data_Value, fg: Ma
         if v != 0 {
             cell.data = Text_Data{data}
         }
-    case Grapheme_Value:
+    case Grapheme_Value, Wide_Continuation:
         cell.data = Text_Data{data}
     }
     return true
