@@ -1,47 +1,111 @@
+// Package events turns terminal input into a stream of typed events.
+//
+// The only entry point an application needs is `poll`, which blocks until at
+// least one event is available or the timeout expires:
+//
+//     for running {
+//         for evt in events.poll(events.FOREVER) {
+//             switch e in evt { ... }
+//         }
+//         redraw()
+//     }
+//
+// Blocking with `FOREVER` means the process sleeps until the user does
+// something or the window is resized; pass a timeout when the UI also needs
+// periodic updates (a clock, an animation, a progress bar).
 package events
 
-import "base:runtime"
-import "core:fmt"
-import "core:io"
-import "core:os"
-import "core:slice"
-import "core:strconv"
-import "core:strings"
-import "core:sys/windows"
 import "core:time"
-import "core:unicode/utf8"
 
-DEBUG_EVENTS :: #config(DEBUG_EVENTS, false)
+FOREVER :: time.Duration(-1)
 
-// TODO: Add states and unify windows and posix
+Key_Code :: enum {
+    Char, // `Key.char` holds the character
+    Enter,
+    Tab,
+    Backspace,
+    Escape,
+    Up,
+    Down,
+    Left,
+    Right,
+    Home,
+    End,
+    Page_Up,
+    Page_Down,
+    Insert,
+    Delete,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+}
+
+Modifier :: enum {
+    Shift,
+    Ctrl,
+    Alt,
+}
+Modifiers :: bit_set[Modifier]
+
 Key :: struct {
-    val: rune,
-    raw: string,
+    code: Key_Code,
+    char: rune, // only meaningful for `.Char`
+    mods: Modifiers,
 }
 
-// TODO: Simplify types to clicked or not
-Mouse_Event_Type :: enum {
-    LeftClick   = 0,
-    MiddleClick = 1,
-    RightClick  = 2,
-    LeftDrag    = 32,
-    MiddleDrag  = 33,
-    RightDrag   = 34,
-    Move        = 35,
-    ScrollUp    = 64,
-    ScrollDown  = 65,
-    ScrollRight = 66,
-    ScrollLeft  = 67,
-    Release     = 120,
+Mouse_Button :: enum {
+    None,
+    Left,
+    Middle,
+    Right,
+    Wheel_Up,
+    Wheel_Down,
+    Wheel_Left,
+    Wheel_Right,
 }
 
-Mouse_Event :: struct {
-    m:   Mouse_Event_Type,
-    x:   int,
-    y:   int,
-    raw: string,
+Mouse_Action :: enum {
+    Press,
+    Release,
+    Drag, // motion with a button held
+    Move, // motion with no button held
+    Scroll, // `button` is one of the `Wheel_*` values
 }
 
+Mouse :: struct {
+    action: Mouse_Action,
+    button: Mouse_Button,
+    col:    int, // zero based
+    row:    int, // zero based
+    mods:   Modifiers,
+}
+
+Resize :: struct {
+    cols: int,
+    rows: int,
+}
+
+// Text inserted with bracketed paste. `text` is allocated with the allocator
+// passed to `poll`.
+Paste :: struct {
+    text: string,
+}
+
+Focus :: struct {
+    gained: bool,
+}
+
+// Input that could not be decoded. `raw` is allocated with the allocator
+// passed to `poll`.
 Unknown :: struct {
     raw: string,
 }
@@ -49,17 +113,37 @@ Unknown :: struct {
 Event :: union #no_nil {
     Unknown,
     Key,
-    Mouse_Event,
+    Mouse,
+    Resize,
+    Paste,
+    Focus,
 }
 
-init_event_poller :: proc() {
-    _init_event_poller()
+// Prepares the input source. Call after `term_sys.init`.
+init :: proc() -> bool {
+    return _init()
 }
 
-destroy_event_poller :: proc() {
-    _destroy_event_poller()
+destroy :: proc() {
+    _destroy()
 }
 
-poll_event :: proc(allocator := context.temp_allocator) -> ([]Event, bool) {
-    return _poll_event(allocator)
+// Waits up to `timeout` for input and returns every event that is available.
+// A negative timeout (`FOREVER`) blocks until something happens, zero returns
+// immediately. The returned slice, and any strings inside it, are allocated
+// with `allocator`.
+poll :: proc(timeout := FOREVER, allocator := context.temp_allocator) -> []Event {
+    return _poll(timeout, allocator)
+}
+
+// True when `evt` is the given key with exactly the given modifiers.
+is_key :: proc(evt: Event, code: Key_Code, mods: Modifiers = {}) -> bool {
+    k, ok := evt.(Key)
+    return ok && k.code == code && k.mods == mods
+}
+
+// True when `evt` is the character `r` with exactly the given modifiers.
+is_char :: proc(evt: Event, r: rune, mods: Modifiers = {}) -> bool {
+    k, ok := evt.(Key)
+    return ok && k.code == .Char && k.char == r && k.mods == mods
 }
