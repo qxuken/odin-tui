@@ -3,6 +3,7 @@ package term_sys
 
 import "core:sys/darwin"
 
+@(private = "file")
 winsize :: struct {
     ws_row:    u16,
     ws_col:    u16,
@@ -10,18 +11,18 @@ winsize :: struct {
     ws_ypixel: u16,
 }
 
-_get_size :: proc() -> Maybe(Window_Size) {
-    // https://rosettacode.org/wiki/Terminal_control/Dimensions#Library:_BSD_libc
-    fd, ok := darwin.sys_open("/dev/tty", {.RDWR}, {})
-    if !ok {
-        return nil
-    }
-    defer darwin.syscall_close(fd)
-
+_get_size :: proc() -> (size: Window_Size, ok: bool) {
     ws: winsize
-    if darwin.syscall_ioctl(fd, darwin.TIOCGWINSZ, rawptr(&ws)) != 0 {
-        return nil
+    if darwin.syscall_ioctl(1, darwin.TIOCGWINSZ, rawptr(&ws)) != 0 {
+        // stdout may be redirected; fall back to the controlling terminal.
+        fd, open_ok := darwin.sys_open("/dev/tty", {.RDWR}, {})
+        if !open_ok {
+            return
+        }
+        defer darwin.syscall_close(fd)
+        if darwin.syscall_ioctl(fd, darwin.TIOCGWINSZ, rawptr(&ws)) != 0 {
+            return
+        }
     }
-
-    return Window_Size{row = cast(int)ws.ws_row, col = cast(int)ws.ws_col, xpixel = cast(int)ws.ws_xpixel, ypixel = cast(int)ws.ws_ypixel}
+    return Window_Size{cols = int(ws.ws_col), rows = int(ws.ws_row), xpixel = int(ws.ws_xpixel), ypixel = int(ws.ws_ypixel)}, true
 }

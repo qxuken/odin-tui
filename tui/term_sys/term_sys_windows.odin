@@ -1,89 +1,114 @@
+#+private
 package term_sys
 
 import "core:c/libc"
 import "core:sys/windows"
 
 @(private = "file")
-orig_mode := max(u32)
-
-@(private = "file")
 ENABLE_EXTENDED_FLAGS: windows.DWORD : 0x0080
 
-_set_utf8_terminal :: proc() {
-    windows.SetConsoleOutputCP(.UTF8)
+@(private = "file")
+orig_in_mode: windows.DWORD
+@(private = "file")
+orig_out_mode: windows.DWORD
+@(private = "file")
+orig_in_cp: windows.CODEPAGE
+@(private = "file")
+orig_out_cp: windows.CODEPAGE
+@(private = "file")
+hooks_installed: bool
+
+@(private = "file")
+in_handle :: #force_inline proc "contextless" () -> windows.HANDLE {
+    return windows.GetStdHandle(windows.STD_INPUT_HANDLE)
+}
+
+@(private = "file")
+out_handle :: #force_inline proc "contextless" () -> windows.HANDLE {
+    return windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
+}
+
+_init :: proc() -> Error {
+    hin, hout := in_handle(), out_handle()
+    if hin == windows.INVALID_HANDLE_VALUE || hout == windows.INVALID_HANDLE_VALUE {
+        return .Not_A_Terminal
+    }
+    if !windows.GetConsoleMode(hin, &orig_in_mode) || !windows.GetConsoleMode(hout, &orig_out_mode) {
+        return .Not_A_Terminal
+    }
+    orig_in_cp = windows.GetConsoleCP()
+    orig_out_cp = windows.GetConsoleOutputCP()
     windows.SetConsoleCP(.UTF8)
-}
+    windows.SetConsoleOutputCP(.UTF8)
 
-_enable_raw_mode :: proc() {
-    if orig_mode == max(u32) {
-        return
+    if !apply_modes() {
+        return .Set_Mode_Failed
     }
-
-    // Get a handle to the standard input.
-    handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-    ensure(handle != windows.INVALID_HANDLE_VALUE)
-
-    // Get the original terminal mode.
-    ok := windows.GetConsoleMode(handle, &orig_mode)
-    ensure(ok == true)
-
-    raw := orig_mode
-    raw &= ~windows.ENABLE_ECHO_INPUT
-    raw &= ~windows.ENABLE_LINE_INPUT
-    ok = windows.SetConsoleMode(handle, raw)
-    ensure(ok == true)
-
+    install_hooks()
+    _write(enter_seq())
+    return .None
 }
 
-_enable_mouse_capture :: proc() {
-    // Get a handle to the standard input.
-    handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-    ensure(handle != windows.INVALID_HANDLE_VALUE)
+_leave_modes :: proc "contextless" () {
+    _write(leave_seq())
+    windows.SetConsoleMode(in_handle(), orig_in_mode)
+    windows.SetConsoleMode(out_handle(), orig_out_mode)
+    windows.SetConsoleCP(orig_in_cp)
+    windows.SetConsoleOutputCP(orig_out_cp)
+}
 
-    if orig_mode != max(u32) {
-        ok := windows.GetConsoleMode(handle, &orig_mode)
-        ensure(ok == true)
+_suspend :: proc() {}
+
+_write :: proc "contextless" (data: []u8) {
+    h := out_handle()
+    rest := data
+    for len(rest) > 0 {
+        written: windows.DWORD
+        if !windows.WriteFile(h, raw_data(rest), windows.DWORD(len(rest)), &written, nil) {
+            return
+        }
+        rest = rest[written:]
     }
-
-    mode := windows.ENABLE_MOUSE_INPUT
-    mode |= windows.ENABLE_WINDOW_INPUT
-    mode |= ENABLE_EXTENDED_FLAGS
-    ok := windows.SetConsoleMode(handle, mode)
-    ensure(ok == true)
 }
 
-_hook_restore_terminal :: proc "c" () {
-    // Reset to the original attributes at the end of the program.
-    libc.atexit(restore_terminal)
-}
-
-_restore_terminal :: proc "c" () {
-    if orig_mode == max(u32) {
-        return
-    }
-
-    handle := windows.GetStdHandle(windows.STD_INPUT_HANDLE)
-    assert_contextless(handle != windows.INVALID_HANDLE_VALUE)
-
-    windows.SetConsoleMode(handle, orig_mode)
-}
-
-_get_size :: proc() -> Maybe(Window_Size) {
-    // Get a handle to the standard output.
-    handle := windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
-    if handle == nil || handle == windows.INVALID_HANDLE_VALUE {
-        return nil
-    }
-
+_get_size :: proc() -> (size: Window_Size, ok: bool) {
     ci: windows.CONSOLE_SCREEN_BUFFER_INFO
-    if !windows.GetConsoleScreenBufferInfo(handle, &ci) {
-        return nil
+    if !windows.GetConsoleScreenBufferInfo(out_handle(), &ci) {
+        return
     }
+    // The visible window, not the (scrollback) buffer.
+    return Window_Size{cols = int(ci.srWindow.Right - ci.srWindow.Left) + 1, rows = int(ci.srWindow.Bottom - ci.srWindow.Top) + 1}, true
+}
 
-    return Window_Size {
-        row = cast(int)ci.dwSize.Y,
-        col = cast(int)ci.dwSize.X,
-        xpixel = cast(int)(ci.srWindow.Right - ci.srWindow.Left),
-        ypixel = cast(int)(ci.srWindow.Bottom - ci.srWindow.Top),
+@(private = "file")
+apply_modes :: proc "contextless" () -> bool {
+    // Raw-ish input: no line buffering, no echo, Ctrl-C delivered as a key.
+    // ENABLE_EXTENDED_FLAGS without ENABLE_QUICK_EDIT_MODE turns quick edit
+    // off, which otherwise swallows mouse events.
+    in_mode := ENABLE_EXTENDED_FLAGS | windows.ENABLE_WINDOW_INPUT
+    if options.mouse {
+        in_mode |= windows.ENABLE_MOUSE_INPUT
     }
+    if !windows.SetConsoleMode(in_handle(), in_mode) {
+        return false
+    }
+    // Let the console interpret the escape sequences we write.
+    out_mode := orig_out_mode | windows.ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    return bool(windows.SetConsoleMode(out_handle(), out_mode))
+}
+
+@(private = "file")
+install_hooks :: proc() {
+    if hooks_installed {
+        return
+    }
+    hooks_installed = true
+    libc.atexit(shutdown)
+    windows.SetConsoleCtrlHandler(ctrl_handler, true)
+}
+
+@(private = "file")
+ctrl_handler :: proc "system" (ctrl_type: windows.DWORD) -> windows.BOOL {
+    shutdown()
+    return false
 }

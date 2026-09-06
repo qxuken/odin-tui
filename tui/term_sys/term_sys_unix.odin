@@ -1,9 +1,17 @@
-#+build netbsd, openbsd, freebsd, haiku
+#+build netbsd, openbsd, freebsd
 #+private
 package term_sys
 
-import "core:sys/unix"
+import "core:c"
+import psx "core:sys/posix"
 
+// `core:sys/unix` exposes no ioctl for the BSDs, so bind libc's directly.
+foreign import libc "system:c"
+foreign libc {
+    ioctl :: proc(fd: psx.FD, request: c.ulong, #c_vararg args: ..any) -> c.int ---
+}
+
+@(private = "file")
 winsize :: struct {
     ws_row:    u16,
     ws_col:    u16,
@@ -11,20 +19,22 @@ winsize :: struct {
     ws_ypixel: u16,
 }
 
-TIOCGWINSZ :: 0x40087468
+// _IOR('t', 104, struct winsize); the same value on every BSD.
+@(private = "file")
+TIOCGWINSZ :: c.ulong(0x40087468)
 
-_get_size :: proc() -> Maybe(Window_Size) {
-    // https://rosettacode.org/wiki/Terminal_control/Dimensions#Library:_BSD_libc
-    fd, ok := unix.sys_open("/dev/tty", {.RDWR}, {})
-    if !ok {
-        return nil
-    }
-    defer unix.syscall_close(fd)
-
+_get_size :: proc() -> (size: Window_Size, ok: bool) {
     ws: winsize
-    if unix.syscall_ioctl(fd, TIOCGWINSZ, rawptr(&ws)) != 0 {
-        return nil
+    if ioctl(psx.STDOUT_FILENO, TIOCGWINSZ, &ws) != 0 {
+        // stdout may be redirected; fall back to the controlling terminal.
+        fd := psx.open("/dev/tty", {})
+        if fd < 0 {
+            return
+        }
+        defer psx.close(fd)
+        if ioctl(fd, TIOCGWINSZ, &ws) != 0 {
+            return
+        }
     }
-
-    return Window_Size{row = cast(int)ws.ws_row, col = cast(int)ws.ws_col, xpixel = cast(int)ws.ws_xpixel, ypixel = cast(int)ws.ws_ypixel}
+    return Window_Size{cols = int(ws.ws_col), rows = int(ws.ws_row), xpixel = int(ws.ws_xpixel), ypixel = int(ws.ws_ypixel)}, true
 }
