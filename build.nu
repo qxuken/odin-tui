@@ -70,3 +70,14 @@ export def clean [] {
 }
 export alias c = clean
 
+# Runs the unit tests of every package that has them.
+export def test [] {
+  mkdir "build"
+  let collections = (open ./collections.json | each { |c| $"-collection:($c.name)=($c.path | path expand)" })
+  for pkg in ["tui/events", "tui/renderer"] {
+    let name = ($pkg | path basename)
+    run-external odin test $pkg $"-out:./build/($name)_test.bin" ...$collections
+  }
+}
+export alias t = test
+
